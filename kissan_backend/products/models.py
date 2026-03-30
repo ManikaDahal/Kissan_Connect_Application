@@ -1,8 +1,9 @@
 from django.db import models
+from cloudinary.models import CloudinaryField
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
-    image = models.ImageField(upload_to='categories/', null=True, blank=True)
+    image = CloudinaryField('image', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -14,7 +15,7 @@ class Product(models.Model):
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.IntegerField(default=0)
-    image = models.ImageField(upload_to='products/', null=True, blank=True)
+    image = CloudinaryField('image', null=True, blank=True)
     is_famous = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

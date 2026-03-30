@@ -3,8 +3,8 @@ from .models import User, EmailOTP
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('phone_number', 'first_name', 'last_name', 'is_verified', 'is_staff', 'date_joined')
-    search_fields = ('phone_number', 'first_name', 'last_name')
+    list_display = ('email', 'full_name', 'phone_number', 'is_verified', 'is_staff', 'date_joined')
+    search_fields = ('email', 'full_name', 'phone_number')
     list_filter = ('is_verified', 'is_staff')
 
 @admin.register(EmailOTP)

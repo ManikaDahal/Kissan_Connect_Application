@@ -7,7 +7,8 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from .models import User, EmailOTP
 from .serializers import UserSerializer, RegisterSerializer, ChangePasswordSerializer
-
+from django.core.mail import send_mail
+from django.conf import settings
 
 def _generate_otp():
     return str(random.randint(100000, 999999))
@@ -41,7 +42,18 @@ class SendOTPView(views.APIView):
 
         # TODO: Replace print with real Email (e.g. SendGrid)
         print(f'[OTP] Signup OTP for {email}: {otp}')
-        return Response({'message': 'OTP sent', 'otp': otp}, status=200)
+        try:
+            send_mail(
+                'Your KissanConnect Signup OTP',
+                f'Your verification code is: {otp}\nThis code will expire in 10 minutes.',
+                settings.EMAIL_HOST_USER,
+                [email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            return Response({'error': f'Failed to send email. Please try again.'}, status=500)
+            
+        return Response({'message': 'OTP sent successfully', 'otp': otp}, status=200)
 
 
 class VerifyOTPView(views.APIView):
@@ -167,7 +179,6 @@ class LogoutView(views.APIView):
             return Response({'error': 'Invalid token'}, status=400)
 
 
-# ─── FORGOT PASSWORD ─────────────────────────────────────────────────────────
 
 class ForgotPasswordView(views.APIView):
     """Send OTP to email for password reset."""
@@ -188,10 +199,20 @@ class ForgotPasswordView(views.APIView):
 
         # TODO: Replace print with real Email
         print(f'[OTP] Reset OTP for {email}: {otp}')
-        return Response({'message': 'Reset OTP sent', 'otp': otp}, status=200)
+        try:
+            send_mail(
+                'KissanConnect Password Reset',
+                f'Your password reset code is: {otp}\nThis code will expire in 10 minutes.',
+                settings.EMAIL_HOST_USER,
+                [email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            return Response({'error': f'Failed to send email. Please try again.'}, status=500)
+            
+        return Response({'message': 'Reset OTP sent successfully', 'otp': otp}, status=200)
 
 
-# ─── VERIFY RESET OTP ────────────────────────────────────────────────────────
 
 class VerifyResetOTPView(views.APIView):
     """Verify the OTP for password reset (does NOT reset password yet)."""
