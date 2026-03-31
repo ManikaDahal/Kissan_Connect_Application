@@ -141,7 +141,10 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 os.makedirs(STATIC_ROOT, exist_ok=True)
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Whitenoise configuration for optimal serving
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+WHITENOISE_MANIFEST_STRICT = False # Forgiving about missing assets
 
 # Static files finders
 STATICFILES_FINDERS = [
