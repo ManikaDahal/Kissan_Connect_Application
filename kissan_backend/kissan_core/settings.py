@@ -54,8 +54,8 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'django.contrib.staticfiles',  # Move before cloudinary
     'cloudinary_storage',
-    'django.contrib.staticfiles',
     'cloudinary',
     'rest_framework',
     'rest_framework_simplejwt',
@@ -102,7 +102,8 @@ WSGI_APPLICATION = 'kissan_core.wsgi.application'
 DATABASES = {
     'default': dj_database_url.config(
         default=os.environ.get('DATABASE_URL') or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
+        conn_max_age=60,
+        conn_health_checks=True,
     )
 }
 
@@ -138,14 +139,19 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-os.makedirs(STATIC_ROOT, exist_ok=True)
+# Modern Storage Configuration (Django 4.2+)
+STORAGES = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
 
-# Whitenoise configuration for optimal serving
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
-WHITENOISE_MANIFEST_STRICT = False # Forgiving about missing assets
-WHITENOISE_USE_FINDERS = True # Helps find files if collectstatic is complex
+# WhiteNoise discovery settings
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_MANIFEST_STRICT = False
 
 # Static files finders
 STATICFILES_FINDERS = [

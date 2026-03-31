@@ -9,6 +9,9 @@ echo "Collecting static files..."
 python manage.py collectstatic --no-input --clear
 
 # Run migrations
+echo "Verifying database connection..."
+python manage.py shell -c "import django; django.db.connection.ensure_connection(); print('DB connection verified')"
+
 echo "Running migrations..."
 python manage.py migrate --no-input
 
