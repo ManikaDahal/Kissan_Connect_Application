@@ -41,7 +41,7 @@ class SendOTPView(views.APIView):
         obj.save()
 
         # TODO: Replace print with real Email (e.g. SendGrid)
-        print(f'[OTP] Signup OTP for {email}: {otp}')
+        print(f'[DEBUG] OTP signup attempt for {email}')
         try:
             send_mail(
                 'Your KissanConnect Signup OTP',
@@ -50,7 +50,9 @@ class SendOTPView(views.APIView):
                 [email],
                 fail_silently=False,
             )
+            print(f'[DEBUG] Signup OTP sent to {email}')
         except Exception as e:
+            print(f'[ERROR] Failed to send email to {email}: {str(e)}')
             return Response({'error': f'Failed to send email. Please try again.'}, status=500)
             
         return Response({'message': 'OTP sent successfully', 'otp': otp}, status=200)
@@ -85,15 +87,18 @@ class RegisterView(views.APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        print(f'[DEBUG] Registration attempt for: {request.data.get("email")}')
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
             tokens = _get_tokens(user)
+            print(f'[DEBUG] User registration successful: {user.email}')
             return Response({
                 'message': 'Registration successful',
                 'user': UserSerializer(user).data,
                 **tokens,
             }, status=201)
+        print(f'[ERROR] Registration validation failed: {serializer.errors}')
         return Response(serializer.errors, status=400)
 
 
@@ -106,15 +111,23 @@ class LoginView(views.APIView):
     def post(self, request):
         email = request.data.get('email', '').strip().lower()
         password = request.data.get('password', '')
+        print(f'[DEBUG] Login attempt for: {email}')
 
         user = User.objects.filter(email=email).first()
-        if user and user.check_password(password):
-            tokens = _get_tokens(user)
-            return Response({
-                'message': 'Login successful',
-                'user': UserSerializer(user).data,
-                **tokens,
-            }, status=200)
+        if user:
+            print(f'[DEBUG] User found: {email}')
+            if user.check_password(password):
+                tokens = _get_tokens(user)
+                print(f'[DEBUG] Password correct for {email}')
+                return Response({
+                    'message': 'Login successful',
+                    'user': UserSerializer(user).data,
+                    **tokens,
+                }, status=200)
+            else:
+                print(f'[ERROR] Incorrect password for {email}')
+        else:
+            print(f'[ERROR] User NOT found: {email}')
         return Response({'error': 'Invalid email or password'}, status=401)
 
 

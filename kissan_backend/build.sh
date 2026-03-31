@@ -4,8 +4,13 @@ set -o errexit
 
 pip install -r requirements.txt
 
+# collect static files
+echo "Collecting static files..."
 python manage.py collectstatic --no-input --clear
-python manage.py migrate
+
+# Run migrations
+echo "Running migrations..."
+python manage.py migrate --no-input
 
 # Create superuser if it doesn't exist
 echo "Creating superuser if it doesn't exist..."

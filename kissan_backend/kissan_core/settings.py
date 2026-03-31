@@ -145,6 +145,7 @@ os.makedirs(STATIC_ROOT, exist_ok=True)
 # Whitenoise configuration for optimal serving
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 WHITENOISE_MANIFEST_STRICT = False # Forgiving about missing assets
+WHITENOISE_USE_FINDERS = True # Helps find files if collectstatic is complex
 
 # Static files finders
 STATICFILES_FINDERS = [
