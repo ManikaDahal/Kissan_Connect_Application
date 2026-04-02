@@ -14,7 +14,7 @@ class CategorySerializer(serializers.ModelSerializer):
         return None
 
 class ReviewSerializer(serializers.ModelSerializer):
-    username = serializers.ReadOnlyField(source='user.name')
+    username = serializers.ReadOnlyField(source='user.full_name')
 
     class Meta:
         model = Review
