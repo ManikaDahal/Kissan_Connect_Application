@@ -7,6 +7,7 @@ import 'package:kissan_connect/features/auth/presentation/pages/otp_verification
 import 'package:kissan_connect/features/auth/presentation/pages/reset_password_page.dart';
 import 'package:kissan_connect/features/auth/presentation/pages/signup_page.dart';
 import 'package:kissan_connect/screens/home/category_products_screen.dart';
+import 'package:kissan_connect/screens/home/checkout_screen.dart';
 import 'package:kissan_connect/screens/onboarding_screen.dart';
 
 class RouteGenerator {
@@ -81,6 +82,11 @@ class RouteGenerator {
             categoryId: args['categoryId'],
             categoryName: args['categoryName'],
           ),
+        );
+
+      case Routes.checkoutRoute:
+        return MaterialPageRoute(
+          builder: (_) => const CheckoutScreen(),
         );
 
       default:

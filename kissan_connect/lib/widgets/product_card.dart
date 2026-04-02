@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kissan_connect/core/providers/cart_provider.dart';
 import '../theme/app_theme.dart';
 
-class ProductCard extends StatelessWidget {
+class ProductCard extends ConsumerWidget {
   final dynamic product;
   final bool horizontal;
 
@@ -12,7 +14,7 @@ class ProductCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       width: horizontal ? 160 : null,
       margin: horizontal ? const EdgeInsets.only(right: 16) : null,
@@ -68,13 +70,25 @@ class ProductCard extends StatelessWidget {
                           fontSize: 14,
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryGreen,
-                          borderRadius: BorderRadius.circular(8),
+                      GestureDetector(
+                        onTap: () {
+                          ref.read(cartProvider.notifier).addToCart(product);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("${product['name'] ?? 'Product'} added to cart"),
+                              backgroundColor: AppTheme.primaryGreen,
+                              duration: const Duration(milliseconds: 700),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryGreen,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.add, color: Colors.white, size: 16),
                         ),
-                        child: const Icon(Icons.add, color: Colors.white, size: 16),
                       ),
                     ],
                   ),
