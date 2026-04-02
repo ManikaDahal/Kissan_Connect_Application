@@ -53,9 +53,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final famousData = await ApiService.get('products/products/', params: {'is_famous': 'true'});
 
       setState(() {
-        _categories = categoriesData['results'] ?? categoriesData;
-        _allProducts = productsData['results'] ?? productsData;
-        _famousProducts = famousData['results'] ?? famousData;
+        _categories = (categoriesData is Map && categoriesData.containsKey('results')) ? categoriesData['results'] : categoriesData;
+        _allProducts = (productsData is Map && productsData.containsKey('results')) ? productsData['results'] : productsData;
+        _famousProducts = (famousData is Map && famousData.containsKey('results')) ? famousData['results'] : famousData;
         _isLoading = false;
         _isSearchLoading = false;
       });

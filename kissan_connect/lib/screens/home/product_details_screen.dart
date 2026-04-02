@@ -15,16 +15,39 @@ class ProductDetailsScreen extends ConsumerStatefulWidget {
 
 class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late dynamic _currentProduct;
   List<dynamic> _similarProducts = [];
   bool _isLoadingSimilar = true;
+  bool _isLoadingProduct = true;
+  bool _isSubmittingReview = false;
   final TextEditingController _reviewController = TextEditingController();
-  int _selectedRating = 5;
+  double _selectedRating = 5.0;
 
   @override
   void initState() {
     super.initState();
+    _currentProduct = widget.product;
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (!mounted) return;
+      setState(() {});
+    });
+    _fetchProductDetails();
     _fetchSimilarProducts();
+  }
+
+  Future<void> _fetchProductDetails() async {
+    try {
+      final updatedProduct = await ApiService.get('products/products/${widget.product['id']}/');
+      if (mounted) {
+        setState(() {
+          _currentProduct = updatedProduct;
+          _isLoadingProduct = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingProduct = false);
+    }
   }
 
   Future<void> _fetchSimilarProducts() async {
@@ -49,21 +72,28 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
   }
 
   Future<void> _submitReview() async {
-    if (_reviewController.text.isEmpty) return;
+    if (_reviewController.text.isEmpty || _isSubmittingReview) return;
+    
+    setState(() => _isSubmittingReview = true);
     
     try {
       await ApiService.post('products/reviews/', {
-        'product': widget.product['id'],
+        'product': _currentProduct['id'],
         'rating': _selectedRating,
         'comment': _reviewController.text,
       });
       
+      // Fetch updated product to immediately show the new review and updated rating
+      final updatedProduct = await ApiService.get('products/products/${_currentProduct['id']}/');
+      
       if (mounted) {
+        setState(() {
+          _currentProduct = updatedProduct;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Review submitted successfully!")),
         );
         _reviewController.clear();
-        // Refresh logic would go here if needed
       }
     } catch (e) {
       if (mounted) {
@@ -71,12 +101,16 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
           SnackBar(content: Text("Error: $e")),
         );
       }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmittingReview = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final product = widget.product;
+    final product = _currentProduct;
     final price = product['price'];
     final weight = product['weight'] ?? "0.00";
     final stock = product['stock'] ?? 0;
@@ -131,22 +165,23 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Toggle Tabs
+                      // Toggle Tabs - Styled as solid segments
                       Container(
-                        padding: const EdgeInsets.all(4),
+                        height: 50,
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
+                          color: Colors.grey[200],
                           borderRadius: BorderRadius.circular(25),
                         ),
                         child: TabBar(
                           controller: _tabController,
+                          indicatorSize: TabBarIndicatorSize.tab,
                           indicator: BoxDecoration(
                             color: AppTheme.primaryGreen,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(25),
                           ),
                           labelColor: Colors.white,
-                          unselectedLabelColor: Colors.grey,
-                          labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                          unselectedLabelColor: Colors.grey[600],
+                          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                           tabs: const [
                             Tab(text: "Details"),
                             Tab(text: "Reviews"),
@@ -155,39 +190,35 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
                       ),
                       const SizedBox(height: 24),
 
-                      // Tab Content Area
-                      SizedBox(
-                        height: 400, // Fixed height for tab area to work in ScrollView
-                        child: TabBarView(
-                          controller: _tabController,
-                          children: [
-                            // Details Tab
-                            _buildDetailsTab(product, weight, stock),
-                            // Reviews Tab
-                            _buildReviewsTab(product),
-                          ],
-                        ),
+                      // Tab Content Area Adapts to Content Height
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: _tabController.index == 0
+                            ? _buildDetailsTab(product, weight, stock)
+                            : _buildReviewsTab(product),
                       ),
 
-                      // Similar Products
-                      const SizedBox(height: 24),
-                      Text("Similar Products", style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 16),
-                      _isLoadingSimilar
-                          ? const Center(child: CircularProgressIndicator())
-                          : _similarProducts.isEmpty
-                              ? const Text("No similar products found.")
-                              : SizedBox(
-                                  height: 200,
-                                  child: ListView.builder(
-                                    scrollDirection: Axis.horizontal,
-                                    itemCount: _similarProducts.length,
-                                    itemBuilder: (context, index) => ProductCard(
-                                      product: _similarProducts[index],
-                                      horizontal: true,
+                      // Similar Products - Only in Details Tab
+                      if (_tabController.index == 0) ...[
+                        const SizedBox(height: 24),
+                        Text("Similar Products", style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 16),
+                        _isLoadingSimilar
+                            ? const Center(child: CircularProgressIndicator())
+                            : _similarProducts.isEmpty
+                                ? const Text("No similar products found.")
+                                : SizedBox(
+                                    height: 200,
+                                    child: ListView.builder(
+                                      scrollDirection: Axis.horizontal,
+                                      itemCount: _similarProducts.length,
+                                      itemBuilder: (context, index) => ProductCard(
+                                        product: _similarProducts[index],
+                                        horizontal: true,
+                                      ),
                                     ),
                                   ),
-                                ),
+                      ],
                       const SizedBox(height: 100), // Spacing for bottom button
                     ],
                   ),
@@ -293,6 +324,8 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
 
   Widget _buildReviewsTab(dynamic product) {
     final List<dynamic> reviews = product['reviews'] ?? [];
+    final double avgRating = (product['average_rating'] ?? 0.0).toDouble();
+    final int totalReviews = product['total_reviews'] ?? 0;
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -301,19 +334,32 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
           children: [
             const Icon(Icons.star, color: Colors.amber, size: 30),
             const SizedBox(width: 8),
-            const Text("4.5", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text(
+              avgRating == 0 ? "No ratings" : avgRating.toStringAsFixed(1), 
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)
+            ),
             const SizedBox(width: 8),
-            Text("(${reviews.length} reviews)", style: const TextStyle(color: Colors.grey)),
+            Text("($totalReviews reviews)", style: const TextStyle(color: Colors.grey)),
           ],
         ),
         const SizedBox(height: 16),
-        Expanded(
-          child: reviews.isEmpty 
-            ? const Center(child: Text("No reviews yet. Be the first!"))
-            : ListView.builder(
-                padding: EdgeInsets.zero,
-                itemCount: reviews.length,
-                itemBuilder: (context, index) {
+        if (_isLoadingProduct)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 32),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (reviews.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 32),
+            child: Center(child: Text("No reviews yet. Be the first!")),
+          )
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            itemCount: reviews.length,
+            itemBuilder: (context, index) {
                   final review = reviews[index];
                   return Container(
                     margin: const EdgeInsets.only(bottom: 16),
@@ -351,7 +397,8 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
                   );
                 },
               ),
-        ),
+        const SizedBox(height: 24),
+        const Divider(),
         _buildReviewForm(),
       ],
     );
@@ -365,12 +412,28 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
           Row(
             children: [
               const Text("Rate: "),
-              ...List.generate(5, (index) => IconButton(
-                onPressed: () => setState(() => _selectedRating = index + 1),
-                icon: Icon(Icons.star, color: _selectedRating > index ? Colors.amber : Colors.grey[300]),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              )),
+              const SizedBox(width: 8),
+              // Star Rating Logic: Single Tap (.5), Double Tap (1.0)
+              ...List.generate(5, (index) {
+                final int starIndex = index;
+                
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedRating = starIndex + 0.5),
+                  onDoubleTap: () => setState(() => _selectedRating = starIndex + 1.0),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Icon(
+                      starIndex < _selectedRating.floor() 
+                          ? Icons.star 
+                          : (starIndex < _selectedRating ? Icons.star_half : Icons.star_border),
+                      color: starIndex < _selectedRating ? Colors.amber : Colors.grey[300],
+                      size: 28,
+                    ),
+                  ),
+                );
+              }),
+              const SizedBox(width: 12),
+              Text(_selectedRating.toStringAsFixed(1), style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryGreen)),
             ],
           ),
           Row(
@@ -379,9 +442,15 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
                 child: TextField(
                   controller: _reviewController,
                   decoration: const InputDecoration(hintText: "Add your review...", border: InputBorder.none),
+                  enabled: !_isSubmittingReview,
                 ),
               ),
-              IconButton(onPressed: _submitReview, icon: const Icon(Icons.send, color: AppTheme.primaryGreen)),
+              _isSubmittingReview 
+                ? const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+                  )
+                : IconButton(onPressed: _submitReview, icon: const Icon(Icons.send, color: AppTheme.primaryGreen)),
             ],
           ),
         ],
