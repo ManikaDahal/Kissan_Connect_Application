@@ -1,6 +1,6 @@
 from rest_framework import generics, permissions, filters, viewsets
 from .models import Category, Product, Review
-from .serializers import CategorySerializer, ProductSerializer, ReviewSerializer
+from .serializers import CategorySerializer, ProductSerializer, ProductListSerializer, ReviewSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 
 class CategoryListCreateView(generics.ListCreateAPIView):
@@ -14,7 +14,7 @@ class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.AllowAny]
 
 class ProductListCreateView(generics.ListCreateAPIView):
-    serializer_class = ProductSerializer
+    serializer_class = ProductListSerializer
     permission_classes = [permissions.AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['category', 'is_famous']
@@ -22,10 +22,10 @@ class ProductListCreateView(generics.ListCreateAPIView):
     ordering_fields = ['price', 'created_at']
 
     def get_queryset(self):
-        return Product.objects.all()
+        return Product.objects.select_related('category').all()
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Product.objects.all().prefetch_related('reviews')
+    queryset = Product.objects.select_related('category').prefetch_related('reviews__user')
     serializer_class = ProductSerializer
     permission_classes = [permissions.AllowAny]
 

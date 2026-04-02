@@ -43,3 +43,26 @@ class ProductSerializer(serializers.ModelSerializer):
         if obj.image:
             return obj.image.url
         return None
+
+class ProductListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for listing products - no embedded reviews."""
+    category_name = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
+    average_rating = serializers.ReadOnlyField()
+    total_reviews = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Product
+        fields = (
+            'id', 'name', 'category', 'category_name', 'description',
+            'price', 'stock', 'weight', 'image', 'is_famous',
+            'created_at', 'average_rating', 'total_reviews'
+        )
+
+    def get_category_name(self, obj):
+        return obj.category.name if obj.category else "Uncategorized"
+
+    def get_image(self, obj):
+        if obj.image:
+            return obj.image.url
+        return None
