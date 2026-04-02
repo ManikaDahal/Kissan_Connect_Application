@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kissan_connect/core/providers/cart_provider.dart';
+import 'package:kissan_connect/core/utils/route_const.dart';
+import 'package:kissan_connect/core/utils/route_generator.dart';
 import '../theme/app_theme.dart';
 
 class ProductCard extends ConsumerWidget {
@@ -15,10 +17,16 @@ class ProductCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      width: horizontal ? 160 : null,
-      margin: horizontal ? const EdgeInsets.only(right: 16) : null,
-      child: Card(
+    return GestureDetector(
+      onTap: () => RouteGenerator.navigateToPage(
+        context,
+        Routes.productDetailsRoute,
+        arguments: product,
+      ),
+      child: Container(
+        width: horizontal ? 160 : null,
+        margin: horizontal ? const EdgeInsets.only(right: 16) : null,
+        child: Card(
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         clipBehavior: Clip.antiAlias,
@@ -98,6 +106,7 @@ class ProductCard extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
