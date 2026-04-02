@@ -23,6 +23,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
   bool _isAgreedToTerms = false;
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -123,8 +124,9 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                 ),
                 const SizedBox(height: 40),
                 CustomElevatedbutton(
-                  onPressed: () async {
+                  onPressed: _isLoading ? () {} : () async {
                     if (_formKey.currentState!.validate() && _isAgreedToTerms) {
+                      setState(() => _isLoading = true);
                       try {
                         await ref.read(authRepositoryProvider).signup(
                               _nameController.text.trim(),
@@ -141,6 +143,10 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                             SnackBar(content: Text(e.toString())),
                           );
                         }
+                      } finally {
+                        if (mounted) {
+                          setState(() => _isLoading = false);
+                        }
                       }
                     } else if (!_isAgreedToTerms) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -148,10 +154,16 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                       );
                     }
                   },
-                  child: const Text(
-                    SignupStr,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text(
+                          SignupStr,
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
                 ),
                 const SizedBox(height: 30),
                 Row(

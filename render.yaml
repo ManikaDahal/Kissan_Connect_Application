@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: kissan-backend
+    env: python
+    rootDir: kissan_backend
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn kissan_core.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.1
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kissan-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+
+databases:
+  - name: kissan-db
+    databaseName: kissan_db
+    user: kissan_user
+    plan: free

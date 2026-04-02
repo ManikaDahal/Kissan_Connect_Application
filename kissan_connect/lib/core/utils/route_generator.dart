@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:kissan_connect/core/utils/route_const.dart';
+import 'package:kissan_connect/features/auth/presentation/pages/bottom_nav_bar.dart';
 import 'package:kissan_connect/features/auth/presentation/pages/forgot_password_page.dart';
 import 'package:kissan_connect/features/auth/presentation/pages/login_page.dart';
 import 'package:kissan_connect/features/auth/presentation/pages/otp_verification_page.dart';
 import 'package:kissan_connect/features/auth/presentation/pages/reset_password_page.dart';
 import 'package:kissan_connect/features/auth/presentation/pages/signup_page.dart';
+import 'package:kissan_connect/screens/home/category_products_screen.dart';
 import 'package:kissan_connect/screens/onboarding_screen.dart';
 
 class RouteGenerator {
@@ -39,6 +41,8 @@ class RouteGenerator {
     switch (settings.name) {
       case Routes.onboardingRoute:
         return MaterialPageRoute(builder: (_) => const OnboardingScreen());
+        case Routes.bottomNavBarRoute:
+        return MaterialPageRoute(builder: (_) => const BottomNavBar());
 
       case Routes.loginRoute:
         return MaterialPageRoute(builder: (_) => const LoginPage());
@@ -68,6 +72,15 @@ class RouteGenerator {
         }
         return MaterialPageRoute(
           builder: (_) => const ResetPasswordPage(email: '', otp: ''),
+        );
+
+      case Routes.categoryProductsRoute:
+        final args = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(
+          builder: (_) => CategoryProductsScreen(
+            categoryId: args['categoryId'],
+            categoryName: args['categoryName'],
+          ),
         );
 
       default:

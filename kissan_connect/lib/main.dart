@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kissan_connect/core/utils/route_generator.dart';
-import 'package:kissan_connect/core/utils/route_const.dart';
 import 'package:kissan_connect/screens/splashScreen.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {

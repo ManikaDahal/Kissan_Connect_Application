@@ -1,0 +1,28 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "kissan_connect",
+            "cwd": "kissan_connect",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "kissan_connect (profile mode)",
+            "cwd": "kissan_connect",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "kissan_connect (release mode)",
+            "cwd": "kissan_connect",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}

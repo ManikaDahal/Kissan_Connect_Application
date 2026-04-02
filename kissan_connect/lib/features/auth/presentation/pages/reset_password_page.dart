@@ -22,6 +22,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   final TextEditingController _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -87,8 +88,9 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
               ),
               const SizedBox(height: 40),
               CustomElevatedbutton(
-                onPressed: () async {
+                onPressed: _isLoading ? () {} : () async {
                   if (_formKey.currentState!.validate()) {
+                    setState(() => _isLoading = true);
                     try {
                       await ref.read(authRepositoryProvider).resetPassword(
                             widget.email,
@@ -107,13 +109,23 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                           SnackBar(content: Text(e.toString())),
                         );
                       }
+                    } finally {
+                      if (mounted) {
+                        setState(() => _isLoading = false);
+                      }
                     }
                   }
                 },
-                child: const Text(
-                  resetStr,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+                child: _isLoading 
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Text(
+                        resetStr,
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
               ),
             ],
           ),

@@ -5,7 +5,7 @@ final authRepositoryProvider = Provider((ref) => AuthRepository());
 
 class AuthRepository {
   Future<Map<String, dynamic>> login(String email, String password) async {
-    final response = await ApiService.post('user+*6s/login/', {
+    final response = await ApiService.post('users/login/', {
       'email': email,
       'password': password,
     });

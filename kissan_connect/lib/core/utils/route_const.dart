@@ -13,4 +13,5 @@ class Routes {
   static const snakeGameRoute = "/snakeGame";
   static const snakeBoardSelectionRoute = "/snakeBoardSelection";
   static const snakeLandingPageRoute = "/snakeLandingPage";
+  static const categoryProductsRoute = "/categoryProducts";
 }

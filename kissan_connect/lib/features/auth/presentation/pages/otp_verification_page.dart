@@ -18,6 +18,7 @@ class OTPVerificationPage extends ConsumerStatefulWidget {
 class _OTPVerificationPageState extends ConsumerState<OTPVerificationPage> {
   final List<TextEditingController> _controllers = List.generate(6, (index) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -56,9 +57,10 @@ class _OTPVerificationPageState extends ConsumerState<OTPVerificationPage> {
             ),
             const SizedBox(height: 40),
             CustomElevatedbutton(
-              onPressed: () async {
+              onPressed: _isLoading ? () {} : () async {
                 String otp = _controllers.map((e) => e.text.trim()).join();
                 if (otp.length == 6) {
+                   setState(() => _isLoading = true);
                    try {
                     await ref.read(authRepositoryProvider).verifyResetOtp(widget.email, otp);
                     if (mounted) {
@@ -73,13 +75,23 @@ class _OTPVerificationPageState extends ConsumerState<OTPVerificationPage> {
                         SnackBar(content: Text(e.toString())),
                       );
                     }
+                  } finally {
+                    if (mounted) {
+                      setState(() => _isLoading = false);
+                    }
                   }
                 }
               },
-              child: const Text(
-                verifyStr,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+              child: _isLoading 
+                  ? const SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    )
+                  : const Text(
+                      verifyStr,
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
             ),
             const SizedBox(height: 30),
             Center(

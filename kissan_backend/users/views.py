@@ -21,9 +21,7 @@ def _get_tokens(user):
         'access': str(refresh.access_token),
     }
 
-
-# ─── OTP ────────────────────────────────────────────────────────────────────
-
+#OTP
 class SendOTPView(views.APIView):
     """Send an OTP to an email for signup."""
     permission_classes = [permissions.AllowAny]
@@ -80,8 +78,7 @@ class VerifyOTPView(views.APIView):
         return Response({'message': 'OTP verified'}, status=200)
 
 
-# ─── SIGNUP ─────────────────────────────────────────────────────────────────
-
+#Signup
 class RegisterView(views.APIView):
     """Register a new user with email, name and password."""
     permission_classes = [permissions.AllowAny]
@@ -102,8 +99,7 @@ class RegisterView(views.APIView):
         return Response(serializer.errors, status=400)
 
 
-# ─── LOGIN ───────────────────────────────────────────────────────────────────
-
+#Login
 class LoginView(views.APIView):
     """Login with email + password. Returns JWT tokens."""
     permission_classes = [permissions.AllowAny]
@@ -131,41 +127,39 @@ class LoginView(views.APIView):
         return Response({'error': 'Invalid email or password'}, status=401)
 
 
-# ─── GOOGLE LOGIN ────────────────────────────────────────────────────────────
+#Google Login
+# from .services.google_auth import verify_google_token
 
-from .services.google_auth import verify_google_token
+# class GoogleLoginView(views.APIView):
+#     """Login/Signup with Google ID Token."""
+#     permission_classes = [permissions.AllowAny]
 
-class GoogleLoginView(views.APIView):
-    """Login/Signup with Google ID Token."""
-    permission_classes = [permissions.AllowAny]
+#     def post(self, request):
+#         id_token = request.data.get('id_token')
+#         if not id_token:
+#             return Response({'error': 'id_token is required'}, status=400)
 
-    def post(self, request):
-        id_token = request.data.get('id_token')
-        if not id_token:
-            return Response({'error': 'id_token is required'}, status=400)
-
-        try:
-            google_data = verify_google_token(id_token)
-            email = google_data.get('email')
-            name = google_data.get('name', '')
+#         try:
+#             google_data = verify_google_token(id_token)
+#             email = google_data.get('email')
+#             name = google_data.get('name', '')
             
-            user, created = User.objects.get_or_create(
-                email=email,
-                defaults={'full_name': name}
-            )
+#             user, created = User.objects.get_or_create(
+#                 email=email,
+#                 defaults={'full_name': name}
+#             )
             
-            tokens = _get_tokens(user)
-            return Response({
-                'message': 'Login successful',
-                'user': UserSerializer(user).data,
-                'is_new_user': created,
-                **tokens,
-            }, status=200)
-        except Exception as e:
-            return Response({'error': str(e)}, status=400)
+#             tokens = _get_tokens(user)
+#             return Response({
+#                 'message': 'Login successful',
+#                 'user': UserSerializer(user).data,
+#                 'is_new_user': created,
+#                 **tokens,
+#             }, status=200)
+#         except Exception as e:
+#             return Response({'error': str(e)}, status=400)
 
 
-# ─── TOKEN REFRESH (for biometric re-auth) ──────────────────────────────────
 
 class BiometricTokenRefreshView(TokenRefreshView):
     """
@@ -176,7 +170,7 @@ class BiometricTokenRefreshView(TokenRefreshView):
     pass  # TokenRefreshView already handles everything
 
 
-# ─── LOGOUT ─────────────────────────────────────────────────────────────────
+#Logout
 
 class LogoutView(views.APIView):
     """Blacklist the refresh token to log out."""
@@ -246,7 +240,7 @@ class VerifyResetOTPView(views.APIView):
         return Response({'message': 'OTP verified. You can now reset your password.'}, status=200)
 
 
-# ─── RESET PASSWORD ──────────────────────────────────────────────────────────
+#Reset Password
 
 class ResetPasswordView(views.APIView):
     """Reset password after OTP has been verified."""
@@ -279,7 +273,7 @@ class ResetPasswordView(views.APIView):
         return Response({'message': 'Password reset successful. Please log in.'}, status=200)
 
 
-# ─── CHANGE PASSWORD (logged-in user) ────────────────────────────────────────
+#Change Password
 
 class ChangePasswordView(views.APIView):
     """Change password for authenticated user."""
@@ -297,7 +291,7 @@ class ChangePasswordView(views.APIView):
         return Response(serializer.errors, status=400)
 
 
-# ─── PROFILE ─────────────────────────────────────────────────────────────────
+#Profile
 
 class ProfileView(views.APIView):
     """Get or update authenticated user's profile."""

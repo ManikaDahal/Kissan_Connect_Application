@@ -21,6 +21,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +107,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: () {
-                          // TODO: Navigate to Forgot Password
+                          RouteGenerator.navigateToPage(context, "/forgotPassword");
                         },
                         child: CustomText(
                           data: forgotPasswordStr,
@@ -117,8 +118,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                     const SizedBox(height: 30),
                     CustomElevatedbutton(
-                      onPressed: () async {
+                      onPressed: _isLoading ? () {} : () async {
                         if (_formKey.currentState!.validate()) {
+                          setState(() => _isLoading = true);
                           try {
                             await ref.read(authRepositoryProvider).login(
                                   _emailController.text.trim(),
@@ -134,13 +136,23 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 SnackBar(content: Text(e.toString())),
                               );
                             }
+                          } finally {
+                            if (mounted) {
+                              setState(() => _isLoading = false);
+                            }
                           }
                         }
                       },
-                      child: const Text(
-                        loginStr,
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
+                      child: _isLoading 
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : const Text(
+                              loginStr,
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
                     ),
                     const SizedBox(height: 30),
                     Row(

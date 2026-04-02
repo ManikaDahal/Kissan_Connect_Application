@@ -18,6 +18,7 @@ class ForgotPasswordPage extends ConsumerStatefulWidget {
 class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   final TextEditingController _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -65,8 +66,9 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
               ),
               const SizedBox(height: 40),
               CustomElevatedbutton(
-                onPressed: () async {
+                onPressed: _isLoading ? () {} : () async {
                   if (_formKey.currentState!.validate()) {
+                    setState(() => _isLoading = true);
                     try {
                       final email = _emailController.text.trim();
                       await ref.read(authRepositoryProvider).forgotPassword(email);
@@ -79,13 +81,23 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                           SnackBar(content: Text(e.toString())),
                         );
                       }
+                    } finally {
+                      if (mounted) {
+                        setState(() => _isLoading = false);
+                      }
                     }
                   }
                 },
-                child: const Text(
-                  sendCodeStr,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+                child: _isLoading 
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Text(
+                        sendCodeStr,
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
               ),
             ],
           ),
