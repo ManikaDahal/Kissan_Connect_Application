@@ -6,6 +6,7 @@ import 'package:kissan_connect/widgets/product_card.dart';
 import '../../theme/app_theme.dart';
 import '../../services/api_service.dart';
 import 'package:kissan_connect/widgets/custom_app_bar.dart';
+import 'package:kissan_connect/widgets/weather_card.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -122,7 +123,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   const SizedBox(height: 24),
                   
-                  // Categories
+                  // Weather Suggestion
+                  const WeatherCard(),
+                  
+                  const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
