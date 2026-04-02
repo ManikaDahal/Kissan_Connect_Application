@@ -24,10 +24,21 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def average_rating(self):
+        reviews = self.reviews.all()
+        if not reviews:
+            return 0.0
+        return sum(r.rating for r in reviews) / len(reviews)
+
+    @property
+    def total_reviews(self):
+        return self.reviews.count()
+
 class Review(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='reviews')
-    rating = models.IntegerField(default=5)
+    rating = models.FloatField(default=5.0)
     comment = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
