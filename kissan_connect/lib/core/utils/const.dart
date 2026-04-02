@@ -11,4 +11,7 @@ class Constants {
 
   static final GlobalKey<NavigatorState> navigatorKey =
       GlobalKey<NavigatorState>();
+
+  // Weather API
+  static const String openWeatherApiKey = "YOUR_API_KEY_HERE";
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
-import 'package:khalti_flutter/khalti_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:kissan_connect/core/providers/cart_provider.dart';
 import 'package:kissan_connect/services/api_service.dart';
 import 'package:kissan_connect/theme/app_theme.dart';
@@ -76,29 +76,85 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Future<void> _handleKhalti(int orderId, double amount) async {
-    KhaltiScope.of(context).pay(
-      config: PaymentConfig(
-        amount: (amount * 100).toInt(), // Paisa
-        productIdentity: orderId.toString(),
-        productName: "Order #$orderId",
+    try {
+      // 1. Get Payment URL from Backend
+      final Map<String, dynamic> response = await ApiService.post('orders/$orderId/initiate-khalti-payment/', {
+        // Using a standard return_url format as fallback
+        'return_url': 'https://kissan-connect-application.onrender.com/payment-success/', 
+      });
+      
+      final String? paymentUrl = response['payment_url'] as String?;
+      final String? pidx = response['pidx'] as String?;
+
+      if (paymentUrl == null || pidx == null) {
+        throw Exception("Backend did not return a payment URL. Response: $response");
+      }
+
+      // 2. Launch Browser
+      final Uri uri = Uri.parse(paymentUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        
+        // 3. Show Verification Dialog
+        if (mounted) {
+          _showKhaltiVerificationDialog(orderId, pidx);
+        }
+      } else {
+        throw Exception("Could not launch URL: $paymentUrl. Please check your browser or AndroidManifest.xml.");
+      }
+    } catch (e) {
+      if (mounted) {
+        // Show more detailed error
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Khalti Error: $e"),
+          duration: const Duration(seconds: 5),
+        ));
+      }
+    }
+  }
+
+  void _showKhaltiVerificationDialog(int orderId, String pidx) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text("Completing Payment"),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text("Please complete the payment in your browser and then click 'Verify'."),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              setState(() => _isLoading = true);
+              try {
+                await ApiService.post('orders/$orderId/verify-khalti-payment/', {
+                  'pidx': pidx,
+                });
+                _onPaymentSuccess();
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Verification Failed: $e")));
+                }
+              } finally {
+                if (mounted) {
+                  setState(() => _isLoading = false);
+                }
+              }
+            },
+            child: const Text("Verify Payment"),
+          ),
+        ],
       ),
-      onSuccess: (success) async {
-        // Verify on backend
-        await ApiService.post('orders/$orderId/verify-khalti-payment/', {
-          'pidx': success.idx,
-        });
-        _onPaymentSuccess();
-      },
-      onFailure: (failure) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Khalti Error: ${failure.message}")));
-        }
-      },
-      onCancel: () {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Cancelled")));
-        }
-      },
     );
   }
 
