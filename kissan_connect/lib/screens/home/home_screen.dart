@@ -21,8 +21,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   List<dynamic> _allProducts = [];
   bool _isLoading = true;
   bool _isSearchLoading = false;
+  final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   int? _selectedCategory;
+  String? _sortBy;
   Timer? _debounce;
 
   @override
@@ -33,34 +35,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   void dispose() {
+    _searchController.dispose();
     _debounce?.cancel();
     super.dispose();
   }
 
-  Future<void> _fetchData({bool isSearch = false}) async {
+  Future<void> _fetchData({bool isSearch = false, bool isRefresh = false}) async {
     if (isSearch) {
       setState(() => _isSearchLoading = true);
-    } else {
+    } else if (!isRefresh) {
       setState(() => _isLoading = true);
     }
+    
     try {
-      final categoriesData = await ApiService.get('products/categories/');
+      // Fetch categories only if empty or refreshing
+      dynamic categoriesData;
+      if (_categories.isEmpty || isRefresh) {
+        categoriesData = await ApiService.get('products/categories/');
+      }
+      
+      // Fetch products with search, category, and sorting
       final productsData = await ApiService.get('products/products/', params: {
         if (_searchQuery.isNotEmpty) 'search': _searchQuery,
         if (_selectedCategory != null) 'category': _selectedCategory.toString(),
+        if (_sortBy != null) 'ordering': _sortBy!,
       });
       
-      final famousData = await ApiService.get('products/products/', params: {'is_famous': 'true'});
+      // Fetch famous products only if NOT searching and they are empty or refreshing
+      dynamic famousData;
+      if (_searchQuery.isEmpty && (_famousProducts.isEmpty || isRefresh)) {
+        famousData = await ApiService.get('products/products/', params: {'is_famous': 'true'});
+      }
 
       setState(() {
-        _categories = (categoriesData is Map && categoriesData.containsKey('results')) ? categoriesData['results'] : categoriesData;
+        if (categoriesData != null) {
+          _categories = (categoriesData is Map && categoriesData.containsKey('results')) ? categoriesData['results'] : categoriesData;
+        }
+        
         _allProducts = (productsData is Map && productsData.containsKey('results')) ? productsData['results'] : productsData;
-        _famousProducts = (famousData is Map && famousData.containsKey('results')) ? famousData['results'] : famousData;
+        
+        if (famousData != null) {
+          _famousProducts = (famousData is Map && famousData.containsKey('results')) ? famousData['results'] : famousData;
+        }
+        
         _isLoading = false;
         _isSearchLoading = false;
       });
     } catch (e) {
-      print("Error fetching data: $e");
+      debugPrint("Error fetching data: $e");
       setState(() {
         _isLoading = false;
         _isSearchLoading = false;
@@ -83,9 +105,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
       body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
+        ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen))
         : RefreshIndicator(
-            onRefresh: _fetchData,
+            onRefresh: () => _fetchData(isRefresh: true),
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
@@ -106,16 +128,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ],
                     ),
                     child: TextField(
+                      controller: _searchController,
                       onChanged: (v) {
                         _searchQuery = v;
                         if (_debounce?.isActive ?? false) _debounce!.cancel();
                         _debounce = Timer(const Duration(milliseconds: 500), () {
                           _fetchData(isSearch: true);
                         });
+                        setState(() {}); // For clear icon visibility
                       },
                       decoration: InputDecoration(
                         hintText: "Search fresh products...",
                         prefixIcon: const Icon(Icons.search, color: AppTheme.primaryGreen),
+                        suffixIcon: _searchQuery.isNotEmpty 
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, color: Colors.grey),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {
+                                  _searchQuery = '';
+                                });
+                                _fetchData(isSearch: true);
+                              },
+                            )
+                          : null,
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(vertical: 15),
                       ),
@@ -123,86 +159,119 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   const SizedBox(height: 24),
                   
-                  // Weather Suggestion
-                  const WeatherCard(),
-                  
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text("Categories", style: AppTheme.lightTheme.textTheme.titleLarge),
-                      TextButton(
-                        onPressed: () {
-                          ref.read(navProvider.notifier).state = 1;
-                        },
-                        child: const Text("See All", style: TextStyle(color: AppTheme.primaryGreen)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 100,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _categories.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
-                          return _buildCategoryItem("All", null);
-                        }
-                        final cat = _categories[index - 1];
-                        return _buildCategoryItem(cat['name'], cat['id'], imageUrl: cat['image']);
-                      },
+                  if (_searchQuery.isEmpty) ...[
+                    // Weather Suggestion
+                    const WeatherCard(),
+                    
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text("Categories", style: AppTheme.lightTheme.textTheme.titleLarge),
+                        TextButton(
+                          onPressed: () {
+                            ref.read(navProvider.notifier).state = 1;
+                          },
+                          child: const Text("See All", style: TextStyle(color: AppTheme.primaryGreen)),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Famous Products
-                  if (_famousProducts.isNotEmpty) ...[
-                    Text("Featured Products", style: AppTheme.lightTheme.textTheme.titleLarge),
                     const SizedBox(height: 12),
                     SizedBox(
-                      height: 220,
+                      height: 100,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
-                        itemCount: _famousProducts.length,
+                        itemCount: _categories.length + 1,
                         itemBuilder: (context, index) {
-                          final product = _famousProducts[index];
-                          return ProductCard(product: product, horizontal: true);
+                          if (index == 0) {
+                            return _buildCategoryItem("All", null);
+                          }
+                          final cat = _categories[index - 1];
+                          return _buildCategoryItem(cat['name'], cat['id'], imageUrl: cat['image']);
                         },
                       ),
                     ),
                     const SizedBox(height: 24),
+
+                    // Famous Products
+                    if (_famousProducts.isNotEmpty) ...[
+                      Text("Featured Products", style: AppTheme.lightTheme.textTheme.titleLarge),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 220,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _famousProducts.length,
+                          itemBuilder: (context, index) {
+                            final product = _famousProducts[index];
+                            return ProductCard(product: product, horizontal: true);
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
                   ],
 
-                  // All Products
+                  // All Products / Search Results
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("All Products", style: AppTheme.lightTheme.textTheme.titleLarge),
-                      if (_isSearchLoading)
-                        const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryGreen),
-                        ),
+                      Text(
+                        _searchQuery.isEmpty ? "All Products" : "Search Results", 
+                        style: AppTheme.lightTheme.textTheme.titleLarge
+                      ),
+                      Row(
+                        children: [
+                          if (_isSearchLoading)
+                            const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryGreen),
+                            ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.sort, 
+                              color: _sortBy != null ? AppTheme.primaryGreen : Colors.grey
+                            ),
+                            onPressed: () => _showSortMenu(),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.75,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
+                  if (_allProducts.isEmpty && !_isSearchLoading)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 40),
+                        child: Column(
+                          children: [
+                            Icon(Icons.search_off, size: 60, color: Colors.grey[400]),
+                            const SizedBox(height: 16),
+                            Text(
+                              "No products found",
+                               style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 0.75,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                      ),
+                      itemCount: _allProducts.length,
+                      itemBuilder: (context, index) {
+                        final product = _allProducts[index];
+                        return ProductCard(product: product);
+                      },
                     ),
-                    itemCount: _allProducts.length,
-                    itemBuilder: (context, index) {
-                      final product = _allProducts[index];
-                      return ProductCard(product: product);
-                    },
-                  ),
                   const SizedBox(height: 24),
                 ],
               ),
@@ -261,6 +330,58 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showSortMenu() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: Row(
+                  children: [
+                    const Icon(Icons.sort, color: AppTheme.primaryGreen),
+                    const SizedBox(width: 10),
+                    Text("Sort By", style: AppTheme.lightTheme.textTheme.titleLarge),
+                  ],
+                ),
+              ),
+              _buildSortOption("Price: Low to High", "price"),
+              _buildSortOption("Price: High to Low", "-price"),
+              _buildSortOption("Newest First", "-created_at"),
+              _buildSortOption("Name: A to Z", "name"),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSortOption(String title, String value) {
+    bool isSelected = _sortBy == value;
+    return ListTile(
+      title: Text(title, style: TextStyle(
+        color: isSelected ? AppTheme.primaryGreen : Colors.black87,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      )),
+      trailing: isSelected ? const Icon(Icons.check, color: AppTheme.primaryGreen) : null,
+      onTap: () {
+        setState(() {
+          _sortBy = isSelected ? null : value;
+        });
+        Navigator.pop(context);
+        _fetchData(isSearch: true);
+      },
     );
   }
 }

@@ -88,7 +88,7 @@ class ApiService {
     final decoded = jsonDecode(response.body);
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (decoded is List) {
-        return {'results': decoded}; // Wrap plain lists in 'results' for consistency
+        return {'results': decoded}; 
       }
       return decoded is Map<String, dynamic> ? decoded : {'data': decoded};
     } else {
