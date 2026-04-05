@@ -7,6 +7,8 @@ import 'package:kissan_connect/features/auth/data/auth_repository.dart';
 import 'package:kissan_connect/widgets/custom_elevetedbutton.dart';
 import 'package:kissan_connect/widgets/custom_text.dart';
 import 'package:kissan_connect/widgets/custom_textformfield.dart';
+import 'package:kissan_connect/core/providers/nav_provider.dart';
+import 'package:kissan_connect/core/providers/cart_provider.dart';
 import '../widgets/social_button.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -126,6 +128,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   _emailController.text.trim(),
                                   _passwordController.text.trim(),
                                 );
+                            await ref.read(cartProvider.notifier).fetchCart();
+                            ref.read(navProvider.notifier).state = 0;
                             if (mounted) {
                               RouteGenerator.navigateToPageWithoutStack(
                                   context, "/bottomNavbar");

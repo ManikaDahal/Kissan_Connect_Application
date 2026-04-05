@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kissan_connect/core/providers/cart_provider.dart';
+import 'package:kissan_connect/core/providers/nav_provider.dart';
 import 'package:kissan_connect/core/utils/route_const.dart';
 import 'package:kissan_connect/theme/app_theme.dart';
 import 'package:kissan_connect/widgets/custom_app_bar.dart';
@@ -27,7 +28,7 @@ class CartScreen extends ConsumerWidget {
                   const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context);
+                      ref.read(navProvider.notifier).state = 0;
                     },
                     style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryGreen),
                     child: const Text("Start Shopping", style: TextStyle(color: Colors.white)),

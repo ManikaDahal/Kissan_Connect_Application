@@ -49,7 +49,7 @@ class ApiService {
           if (token != null) 'Authorization': 'Bearer $token',
         },
         body: jsonEncode(data),
-      ).timeout(const Duration(seconds: 30)); // Increased timeout for Render
+      ).timeout(const Duration(seconds: 30));
       return _handleResponse(response);
     } catch (e) {
       if (e is http.ClientException) {
@@ -74,11 +74,50 @@ class ApiService {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
         },
-      ).timeout(const Duration(seconds: 30)); // Increased timeout for Render
+      ).timeout(const Duration(seconds: 30));
       return _handleResponse(response);
     } catch (e) {
       if (e is http.ClientException) {
         throw ApiException("Cannot connect to server. Please check your network or if the server is running.");
+      }
+      rethrow;
+    }
+  }
+
+  static Future<dynamic> delete(String endpoint) async {
+    final token = await _getToken();
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/$endpoint'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 30));
+      return _handleResponse(response);
+    } catch (e) {
+      if (e is http.ClientException) {
+        throw ApiException("Cannot connect to server.");
+      }
+      rethrow;
+    }
+  }
+
+  static Future<dynamic> patch(String endpoint, Map<String, dynamic> data) async {
+    final token = await _getToken();
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/$endpoint'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(data),
+      ).timeout(const Duration(seconds: 30));
+      return _handleResponse(response);
+    } catch (e) {
+      if (e is http.ClientException) {
+        throw ApiException("Cannot connect to server.");
       }
       rethrow;
     }
@@ -99,20 +138,15 @@ class ApiService {
       String errorMessage = body['error'] ?? body['detail'] ?? 'An error occurred';
       
       if (body['error'] == null && body['detail'] == null && body.isNotEmpty) {
-        // Handle Django REST Framework validation errors
         final firstKey = body.keys.first;
         final firstError = body[firstKey];
-        
-        // Format the key to look nice (e.g. "full_name" -> "Full name")
         final cleanKey = firstKey[0].toUpperCase() + firstKey.substring(1).replaceAll('_', ' ');
-        
         if (firstError is List && firstError.isNotEmpty) {
            errorMessage = '$cleanKey: ${firstError.first}';
         } else {
            errorMessage = '$cleanKey: $firstError';
         }
       }
-      
       throw ApiException(errorMessage);
     }
   }
