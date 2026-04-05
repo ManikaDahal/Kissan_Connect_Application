@@ -48,45 +48,66 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
     
     try {
-      // Fetch categories only if empty or refreshing
-      dynamic categoriesData;
+      // Prepare futures for parallel execution
+      final List<Future<dynamic>> futures = [];
+      
+      // 0: Categories (conditional)
       if (_categories.isEmpty || isRefresh) {
-        categoriesData = await ApiService.get('products/categories/');
+        futures.add(ApiService.get('products/categories/'));
+      } else {
+        futures.add(Future.value(null));
       }
       
-      // Fetch products with search, category, and sorting
-      final productsData = await ApiService.get('products/products/', params: {
+      // 1: Products (always)
+      futures.add(ApiService.get('products/products/', params: {
         if (_searchQuery.isNotEmpty) 'search': _searchQuery,
         if (_selectedCategory != null) 'category': _selectedCategory.toString(),
         if (_sortBy != null) 'ordering': _sortBy!,
-      });
+      }));
       
-      // Fetch famous products only if NOT searching and they are empty or refreshing
-      dynamic famousData;
+      // 2: Famous products (conditional)
       if (_searchQuery.isEmpty && (_famousProducts.isEmpty || isRefresh)) {
-        famousData = await ApiService.get('products/products/', params: {'is_famous': 'true'});
+        futures.add(ApiService.get('products/products/', params: {'is_famous': 'true'}));
+      } else {
+        futures.add(Future.value(null));
       }
 
-      setState(() {
-        if (categoriesData != null) {
-          _categories = (categoriesData is Map && categoriesData.containsKey('results')) ? categoriesData['results'] : categoriesData;
-        }
-        
-        _allProducts = (productsData is Map && productsData.containsKey('results')) ? productsData['results'] : productsData;
-        
-        if (famousData != null) {
-          _famousProducts = (famousData is Map && famousData.containsKey('results')) ? famousData['results'] : famousData;
-        }
-        
-        _isLoading = false;
-        _isSearchLoading = false;
-      });
+      // Execute all calls in parallel
+      final results = await Future.wait(futures);
+      final categoriesData = results[0];
+      final productsData = results[1];
+      final famousData = results[2];
+
+      if (mounted) {
+        setState(() {
+          if (categoriesData != null) {
+            _categories = (categoriesData is Map && categoriesData.containsKey('results')) 
+                ? categoriesData['results'] 
+                : categoriesData;
+          }
+          
+          _allProducts = (productsData is Map && productsData.containsKey('results')) 
+              ? productsData['results'] 
+              : productsData;
+          
+          if (famousData != null) {
+            _famousProducts = (famousData is Map && famousData.containsKey('results')) 
+                ? famousData['results'] 
+                : famousData;
+          }
+          
+          _isLoading = false;
+          _isSearchLoading = false;
+        });
+      }
     } catch (e) {
       debugPrint("Error fetching data: $e");
-      setState(() {
-        _isLoading = false;
-        _isSearchLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isSearchLoading = false;
+        });
+      }
     }
   }
 
