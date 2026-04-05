@@ -6,6 +6,9 @@ import 'package:kissan_connect/core/providers/cart_provider.dart';
 import 'package:kissan_connect/services/api_service.dart';
 import 'package:kissan_connect/theme/app_theme.dart';
 import 'package:kissan_connect/widgets/custom_app_bar.dart';
+import 'package:kissan_connect/core/models/address_model.dart';
+
+import 'package:kissan_connect/screens/profile/add_address_screen.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
@@ -17,6 +20,43 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   bool _isLoading = false;
   String _selectedMethod = 'stripe';
+  UserAddress? _selectedAddress;
+  List<UserAddress> _allAddresses = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDefaultAddress();
+  }
+
+  Future<void> _fetchDefaultAddress() async {
+    try {
+      final response = await ApiService.get('users/addresses/');
+      List<dynamic> listContent = [];
+      
+      if (response is List) {
+        listContent = response;
+      } else if (response is Map && response.containsKey('results')) {
+        listContent = response['results'];
+      }
+
+      if (listContent.isNotEmpty) {
+        setState(() {
+          _allAddresses = listContent.map((a) => UserAddress.fromJson(a)).toList();
+          if (_selectedAddress == null || !_allAddresses.any((a) => a.id == _selectedAddress!.id)) {
+             _selectedAddress = _allAddresses.firstWhere((a) => a.isDefault, orElse: () => _allAddresses.first);
+          }
+        });
+      } else {
+        setState(() {
+          _allAddresses = [];
+          _selectedAddress = null;
+        });
+      }
+    } catch (e) {
+      print("Error fetching addresses: $e");
+    }
+  }
 
   Future<void> _processPayment() async {
     final cart = ref.read(cartProvider);
@@ -27,6 +67,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     setState(() => _isLoading = true);
 
     try {
+      if (_selectedAddress == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please select a shipping address")),
+        );
+        return;
+      }
+
       // 1. Create Order on Backend
       final orderData = await ApiService.post('orders/', {
         'items': cart.map((item) => {
@@ -34,6 +81,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           'quantity': item.quantity,
         }).toList(),
         'payment_gateway': _selectedMethod,
+        'shipping_address_id': _selectedAddress!.id,
       });
 
       final int orderId = orderData['id'];
@@ -198,6 +246,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   const SizedBox(height: 16),
                   _buildPaymentOption('stripe', 'Stripe (Card)', Icons.credit_card),
                   _buildPaymentOption('khalti', 'Khalti', Icons.account_balance_wallet),
+                  const SizedBox(height: 24),
+                  const Text("Shipping Address", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  _buildAddressSection(),
                   const Spacer(),
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -238,6 +290,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Widget _buildPaymentOption(String id, String label, IconData icon) {
+    // ... rest of the existing method ...
     bool isSelected = _selectedMethod == id;
     return GestureDetector(
       onTap: () => setState(() => _selectedMethod = id),
@@ -258,6 +311,144 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             if (isSelected) const Icon(Icons.check_circle, color: AppTheme.primaryGreen),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showAddressSelectionModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.only(top: 24, left: 16, right: 16, bottom: 24),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Select Delivery Address",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _allAddresses.length,
+                  itemBuilder: (context, index) {
+                    final addr = _allAddresses[index];
+                    final isSelected = _selectedAddress?.id == addr.id;
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                        color: AppTheme.primaryGreen,
+                      ),
+                      title: Text(addr.fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text("${addr.summary}\n${addr.phoneNumber}"),
+                      isThreeLine: true,
+                      onTap: () {
+                        setState(() => _selectedAddress = addr);
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+              const Divider(),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.add_location_alt_outlined, color: AppTheme.primaryGreen),
+                title: const Text("Deliver to New Address", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryGreen)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AddAddressScreen()),
+                  );
+                  if (result == true) _fetchDefaultAddress();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAddressSection() {
+    if (_selectedAddress == null) {
+      return InkWell(
+        onTap: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AddAddressScreen()),
+          );
+          if (result == true) _fetchDefaultAddress();
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(12),
+            color: Colors.white,
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.add_location_alt_outlined, color: AppTheme.primaryGreen),
+              SizedBox(width: 12),
+              Text("Add Shipping Address", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryGreen)),
+              Spacer(),
+              Icon(Icons.chevron_right, color: Colors.grey),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.location_on_outlined, color: AppTheme.primaryGreen, size: 20),
+              const SizedBox(width: 8),
+              Text(_selectedAddress!.fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
+              const Spacer(),
+              TextButton(
+                onPressed: _showAddressSelectionModal,
+                child: const Text("Change"),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 28.0),
+            child: Text(
+              _selectedAddress!.summary,
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 28.0),
+            child: Text(
+              _selectedAddress!.phoneNumber,
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -64,9 +64,9 @@ class ApiService {
     Map<String, String>? params,
   }) async {
     final token = await _getToken();
-    final uri = Uri.parse(
-      '$baseUrl/$endpoint',
-    ).replace(queryParameters: params);
+    final uri = Uri.parse('$baseUrl/$endpoint').replace(
+      queryParameters: (params != null && params.isNotEmpty) ? params : null,
+    );
     try {
       final response = await http.get(
         uri,
@@ -124,13 +124,11 @@ class ApiService {
   }
 
   static dynamic _handleResponse(http.Response response) {
-    final decoded = jsonDecode(response.body);
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      if (decoded is List) {
-        return {'results': decoded}; 
-      }
-      return decoded is Map<String, dynamic> ? decoded : {'data': decoded};
+      if (response.body.isEmpty) return null;
+      return jsonDecode(response.body);
     } else {
+      final decoded = response.body.isNotEmpty ? jsonDecode(response.body) : {};
       final Map<String, dynamic> body = decoded is Map<String, dynamic>
           ? decoded
           : {};

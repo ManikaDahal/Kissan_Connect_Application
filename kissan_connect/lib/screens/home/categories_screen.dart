@@ -24,7 +24,11 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     try {
       final data = await ApiService.get('products/categories/');
       setState(() {
-        _categories = data['results'] ?? data;
+        if (data is List) {
+          _categories = data;
+        } else if (data is Map && data.containsKey('results')) {
+          _categories = data['results'];
+        }
         _isLoading = false;
       });
     } catch (e) {

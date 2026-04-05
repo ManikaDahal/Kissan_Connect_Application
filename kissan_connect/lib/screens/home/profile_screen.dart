@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:kissan_connect/services/api_service.dart';
 import 'package:kissan_connect/core/utils/route_const.dart';
 import 'package:kissan_connect/widgets/custom_app_bar.dart';
+import 'package:kissan_connect/screens/profile/order_history_screen.dart';
+import 'package:kissan_connect/screens/profile/address_book_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -125,12 +127,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildProfileItem(
                     Icons.shopping_bag_outlined,
                     "My Orders",
-                    () {},
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const OrderHistoryScreen()),
+                    ),
                   ),
                   _buildProfileItem(
                     Icons.location_on_outlined,
                     "Shipping Address",
-                    () {},
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AddressBookScreen()),
+                    ),
                   ),
                   _buildProfileItem(
                     Icons.payment_outlined,
