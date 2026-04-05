@@ -1,4 +1,5 @@
 import random
+import threading
 from django.contrib.auth.hashers import make_password
 from rest_framework import status, permissions, views, generics
 from rest_framework.response import Response
@@ -21,6 +22,26 @@ def _get_tokens(user):
         'access': str(refresh.access_token),
     }
 
+def _send_email_async(subject, message, recipient_list):
+    """Helper to send email in a background thread to prevent API timeouts."""
+    def send():
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings
+            print(f'[DEBUG] Background email sending started for {recipient_list}')
+            send_mail(
+                subject,
+                message,
+                settings.EMAIL_HOST_USER,
+                recipient_list,
+                fail_silently=False,
+            )
+            print(f'[DEBUG] Background email sent successfully to {recipient_list}')
+        except Exception as e:
+            print(f'[ERROR] Background email failed for {recipient_list}: {str(e)}')
+
+    threading.Thread(target=send).start()
+
 #OTP
 class SendOTPView(views.APIView):
     """Send an OTP to an email for signup."""
@@ -38,20 +59,12 @@ class SendOTPView(views.APIView):
         obj.count += 1
         obj.save()
 
-        # TODO: Replace print with real Email (e.g. SendGrid)
-        print(f'[DEBUG] OTP signup attempt for {email}')
-        try:
-            send_mail(
-                'Your KissanConnect Signup OTP',
-                f'Your verification code is: {otp}\nThis code will expire in 10 minutes.',
-                settings.EMAIL_HOST_USER,
-                [email],
-                fail_silently=False,
-            )
-            print(f'[DEBUG] Signup OTP sent to {email}')
-        except Exception as e:
-            print(f'[ERROR] Failed to send email to {email}: {str(e)}')
-            return Response({'error': f'Failed to send email. Please try again.'}, status=500)
+        # Send email in background to prevent timeout
+        _send_email_async(
+            'Your KissanConnect Signup OTP',
+            f'Your verification code is: {otp}\nThis code will expire in 10 minutes.',
+            [email]
+        )
             
         return Response({'message': 'OTP sent successfully', 'otp': otp}, status=200)
 
@@ -204,18 +217,12 @@ class ForgotPasswordView(views.APIView):
         obj.count += 1
         obj.save()
 
-        # TODO: Replace print with real Email
-        print(f'[OTP] Reset OTP for {email}: {otp}')
-        try:
-            send_mail(
-                'KissanConnect Password Reset',
-                f'Your password reset code is: {otp}\nThis code will expire in 10 minutes.',
-                settings.EMAIL_HOST_USER,
-                [email],
-                fail_silently=False,
-            )
-        except Exception as e:
-            return Response({'error': f'Failed to send email. Please try again.'}, status=500)
+        # Send email in background to prevent timeout
+        _send_email_async(
+            'KissanConnect Password Reset',
+            f'Your password reset code is: {otp}\nThis code will expire in 10 minutes.',
+            [email]
+        )
             
         return Response({'message': 'Reset OTP sent successfully', 'otp': otp}, status=200)
 
