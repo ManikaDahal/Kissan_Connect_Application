@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kissan_connect/core/utils/const.dart';
@@ -49,9 +50,12 @@ class ApiService {
           if (token != null) 'Authorization': 'Bearer $token',
         },
         body: jsonEncode(data),
-      ).timeout(const Duration(seconds: 30));
+      ).timeout(const Duration(seconds: 60));
       return _handleResponse(response);
     } catch (e) {
+      if (e is TimeoutException) {
+        throw ApiException("The server is taking too long to respond. It might be waking up, please try again in a few seconds.");
+      }
       if (e is http.ClientException) {
         throw ApiException("Cannot connect to server. Please check your network or if the server is running.");
       }
@@ -74,9 +78,12 @@ class ApiService {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
         },
-      ).timeout(const Duration(seconds: 30));
+      ).timeout(const Duration(seconds: 60));
       return _handleResponse(response);
     } catch (e) {
+      if (e is TimeoutException) {
+        throw ApiException("The server is taking too long to respond. It might be waking up, please try again in a few seconds.");
+      }
       if (e is http.ClientException) {
         throw ApiException("Cannot connect to server. Please check your network or if the server is running.");
       }
@@ -93,9 +100,12 @@ class ApiService {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
         },
-      ).timeout(const Duration(seconds: 30));
+      ).timeout(const Duration(seconds: 60));
       return _handleResponse(response);
     } catch (e) {
+      if (e is TimeoutException) {
+        throw ApiException("The server is taking too long to respond. It might be waking up, please try again in a few seconds.");
+      }
       if (e is http.ClientException) {
         throw ApiException("Cannot connect to server.");
       }
@@ -113,9 +123,12 @@ class ApiService {
           if (token != null) 'Authorization': 'Bearer $token',
         },
         body: jsonEncode(data),
-      ).timeout(const Duration(seconds: 30));
+      ).timeout(const Duration(seconds: 60));
       return _handleResponse(response);
     } catch (e) {
+      if (e is TimeoutException) {
+        throw ApiException("The server is taking too long to respond. It might be waking up, please try again in a few seconds.");
+      }
       if (e is http.ClientException) {
         throw ApiException("Cannot connect to server.");
       }

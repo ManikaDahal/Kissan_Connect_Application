@@ -53,7 +53,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       
       // 0: Categories (conditional)
       if (_categories.isEmpty || isRefresh) {
-        futures.add(ApiService.get('products/categories/'));
+        futures.add(ApiService.get('products/categories/').catchError((e) {
+          debugPrint("Categories error: $e");
+          return null;
+        }));
       } else {
         futures.add(Future.value(null));
       }
@@ -63,11 +66,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (_searchQuery.isNotEmpty) 'search': _searchQuery,
         if (_selectedCategory != null) 'category': _selectedCategory.toString(),
         if (_sortBy != null) 'ordering': _sortBy!,
+      }).catchError((e) {
+        debugPrint("Products error: $e");
+        return null;
       }));
       
       // 2: Famous products (conditional)
       if (_searchQuery.isEmpty && (_famousProducts.isEmpty || isRefresh)) {
-        futures.add(ApiService.get('products/products/', params: {'is_famous': 'true'}));
+        futures.add(ApiService.get('products/products/', params: {'is_famous': 'true'}).catchError((e) {
+          debugPrint("Famous products error: $e");
+          return null;
+        }));
       } else {
         futures.add(Future.value(null));
       }
