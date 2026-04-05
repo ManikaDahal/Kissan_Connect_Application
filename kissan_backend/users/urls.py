@@ -25,3 +25,10 @@ urlpatterns = [
     path('password/change/',  ChangePasswordView.as_view(), name='change-password'),
     path('profile/',          ProfileView.as_view(),         name='profile'),
 ]
+
+from rest_framework.routers import DefaultRouter
+from .views import AddressViewSet
+
+router = DefaultRouter()
+router.register('addresses', AddressViewSet, basename='address')
+urlpatterns += router.urls

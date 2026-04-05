@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from .models import Order, OrderItem
 from .serializers import OrderSerializer
 from products.models import Product
+from users.models import UserAddress
 
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
 
@@ -47,7 +48,8 @@ class OrderViewSet(viewsets.ModelViewSet):
             user=request.user,
             total_amount=total_amount,
             status='pending',
-            payment_gateway=request.data.get('payment_gateway', 'cod')
+            payment_gateway=request.data.get('payment_gateway', 'cod'),
+            shipping_address = UserAddress.objects.filter(id=request.data.get('shipping_address_id')).first() if request.data.get('shipping_address_id') else None
         )
 
         for item in order_items:
