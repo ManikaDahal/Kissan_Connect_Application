@@ -18,8 +18,8 @@ class ProductListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['category', 'is_famous']
-    search_fields = ['name', 'description']
-    ordering_fields = ['price', 'created_at']
+    search_fields = ['name']
+    ordering_fields = ['price', 'created_at', 'name']
 
     def get_queryset(self):
         return Product.objects.select_related('category').all()
