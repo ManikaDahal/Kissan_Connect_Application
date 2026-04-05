@@ -9,6 +9,7 @@ import 'package:kissan_connect/widgets/custom_text.dart';
 import 'package:kissan_connect/widgets/custom_textformfield.dart';
 import 'package:kissan_connect/core/providers/nav_provider.dart';
 import 'package:kissan_connect/core/providers/cart_provider.dart';
+import 'package:kissan_connect/core/utils/error_helper.dart';
 import '../widgets/social_button.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -163,9 +164,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             }
                           } catch (e) {
                             if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(e.toString())),
-                              );
+                              ErrorHelper.showSnackBarError(context, e);
                             }
                           } finally {
                             if (mounted) {

@@ -9,6 +9,7 @@ import 'package:kissan_connect/widgets/custom_app_bar.dart';
 import 'package:kissan_connect/core/models/address_model.dart';
 
 import 'package:kissan_connect/screens/profile/add_address_screen.dart';
+import 'package:kissan_connect/core/utils/error_helper.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
@@ -33,7 +34,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     try {
       final response = await ApiService.get('users/addresses/');
       List<dynamic> listContent = [];
-      
+
       if (response is List) {
         listContent = response;
       } else if (response is Map && response.containsKey('results')) {
@@ -42,9 +43,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
       if (listContent.isNotEmpty) {
         setState(() {
-          _allAddresses = listContent.map((a) => UserAddress.fromJson(a)).toList();
-          if (_selectedAddress == null || !_allAddresses.any((a) => a.id == _selectedAddress!.id)) {
-             _selectedAddress = _allAddresses.firstWhere((a) => a.isDefault, orElse: () => _allAddresses.first);
+          _allAddresses = listContent
+              .map((a) => UserAddress.fromJson(a))
+              .toList();
+          if (_selectedAddress == null ||
+              !_allAddresses.any((a) => a.id == _selectedAddress!.id)) {
+            _selectedAddress = _allAddresses.firstWhere(
+              (a) => a.isDefault,
+              orElse: () => _allAddresses.first,
+            );
           }
         });
       } else {
@@ -76,10 +83,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
       // 1. Create Order on Backend
       final orderData = await ApiService.post('orders/', {
-        'items': cart.map((item) => {
-          'product': item.product['id'],
-          'quantity': item.quantity,
-        }).toList(),
+        'items': cart
+            .map(
+              (item) => {
+                'product': item.product['id'],
+                'quantity': item.quantity,
+              },
+            )
+            .toList(),
         'payment_gateway': _selectedMethod,
         'shipping_address_id': _selectedAddress!.id,
       });
@@ -93,7 +104,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ErrorHelper.showSnackBarError(context, e);
       }
     } finally {
       if (mounted) {
@@ -104,7 +115,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   Future<void> _handleStripe(int orderId) async {
     // 1. Get Client Secret from Backend
-    final response = await ApiService.post('orders/$orderId/create-stripe-payment-intent/', {});
+    final response = await ApiService.post(
+      'orders/$orderId/create-stripe-payment-intent/',
+      {},
+    );
     final clientSecret = response['clientSecret'];
 
     // 2. Initialize Payment Sheet
@@ -118,7 +132,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     // 3. Present Payment Sheet
     await Stripe.instance.presentPaymentSheet();
-    
+
     // 4. Success!
     _onPaymentSuccess();
   }
@@ -126,37 +140,41 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   Future<void> _handleKhalti(int orderId, double amount) async {
     try {
       // 1. Get Payment URL from Backend
-      final Map<String, dynamic> response = await ApiService.post('orders/$orderId/initiate-khalti-payment/', {
-        // Using a standard return_url format as fallback
-        'return_url': 'https://kissan-connect-application.onrender.com/payment-success/', 
-      });
-      
+      final Map<String, dynamic> response = await ApiService.post(
+        'orders/$orderId/initiate-khalti-payment/',
+        {
+          // Using a standard return_url format as fallback
+          'return_url':
+              'https://kissan-connect-application.onrender.com/payment-success/',
+        },
+      );
+
       final String? paymentUrl = response['payment_url'] as String?;
       final String? pidx = response['pidx'] as String?;
 
       if (paymentUrl == null || pidx == null) {
-        throw Exception("Backend did not return a payment URL. Response: $response");
+        throw Exception(
+          "Backend did not return a payment URL. Response: $response",
+        );
       }
 
       // 2. Launch Browser
       final Uri uri = Uri.parse(paymentUrl);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
-        
+
         // 3. Show Verification Dialog
         if (mounted) {
           _showKhaltiVerificationDialog(orderId, pidx);
         }
       } else {
-        throw Exception("Could not launch URL: $paymentUrl. Please check your browser or AndroidManifest.xml.");
+        throw Exception(
+          "Could not launch URL: $paymentUrl. Please check your browser or AndroidManifest.xml.",
+        );
       }
     } catch (e) {
       if (mounted) {
-        // Show more detailed error
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Khalti Error: $e"),
-          duration: const Duration(seconds: 5),
-        ));
+        ErrorHelper.showSnackBarError(context, e);
       }
     }
   }
@@ -172,7 +190,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            Text("Please complete the payment in your browser and then click 'Verify'."),
+            Text(
+              "Please complete the payment in your browser and then click 'Verify'.",
+            ),
           ],
         ),
         actions: [
@@ -185,13 +205,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               Navigator.pop(context);
               setState(() => _isLoading = true);
               try {
-                await ApiService.post('orders/$orderId/verify-khalti-payment/', {
-                  'pidx': pidx,
-                });
+                await ApiService.post(
+                  'orders/$orderId/verify-khalti-payment/',
+                  {'pidx': pidx},
+                );
                 _onPaymentSuccess();
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Verification Failed: $e")));
+                  ErrorHelper.showSnackBarError(
+                    context,
+                    e,
+                    prefix: "Verification Failed",
+                  );
                 }
               } finally {
                 if (mounted) {
@@ -209,13 +234,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   void _onPaymentSuccess() {
     ref.read(cartProvider.notifier).clearCart();
     if (!mounted) return;
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text("Success!"),
-        content: const Text("Your payment was successful and your order is placed."),
+        content: const Text(
+          "Your payment was successful and your order is placed.",
+        ),
         actions: [
           TextButton(
             onPressed: () {
@@ -242,12 +269,26 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Select Payment Method", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text(
+                    "Select Payment Method",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 16),
-                  _buildPaymentOption('stripe', 'Stripe (Card)', Icons.credit_card),
-                  _buildPaymentOption('khalti', 'Khalti', Icons.account_balance_wallet),
+                  _buildPaymentOption(
+                    'stripe',
+                    'Stripe (Card)',
+                    Icons.credit_card,
+                  ),
+                  _buildPaymentOption(
+                    'khalti',
+                    'Khalti',
+                    Icons.account_balance_wallet,
+                  ),
                   const SizedBox(height: 24),
-                  const Text("Shipping Address", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text(
+                    "Shipping Address",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 12),
                   _buildAddressSection(),
                   const Spacer(),
@@ -256,7 +297,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          blurRadius: 10,
+                        ),
+                      ],
                     ),
                     child: Column(
                       children: [
@@ -264,7 +310,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text("Total Payable"),
-                            Text("Rs. ${total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primaryGreen)),
+                            Text(
+                              "Rs. ${total.toStringAsFixed(2)}",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: AppTheme.primaryGreen,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -275,9 +328,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                             onPressed: total > 0 ? _processPayment : null,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.primaryGreen,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
-                            child: const Text("Pay Now", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              "Pay Now",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -298,17 +360,29 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: isSelected ? AppTheme.primaryGreen : Colors.grey[300]!, width: 2),
+          border: Border.all(
+            color: isSelected ? AppTheme.primaryGreen : Colors.grey[300]!,
+            width: 2,
+          ),
           borderRadius: BorderRadius.circular(12),
-          color: isSelected ? AppTheme.primaryGreen.withOpacity(0.05) : Colors.white,
+          color: isSelected
+              ? AppTheme.primaryGreen.withOpacity(0.05)
+              : Colors.white,
         ),
         child: Row(
           children: [
             Icon(icon, color: isSelected ? AppTheme.primaryGreen : Colors.grey),
             const SizedBox(width: 16),
-            Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, fontSize: 16)),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 16,
+              ),
+            ),
             const Spacer(),
-            if (isSelected) const Icon(Icons.check_circle, color: AppTheme.primaryGreen),
+            if (isSelected)
+              const Icon(Icons.check_circle, color: AppTheme.primaryGreen),
           ],
         ),
       ),
@@ -324,7 +398,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       ),
       builder: (context) {
         return Container(
-          padding: const EdgeInsets.only(top: 24, left: 16, right: 16, bottom: 24),
+          padding: const EdgeInsets.only(
+            top: 24,
+            left: 16,
+            right: 16,
+            bottom: 24,
+          ),
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.7,
           ),
@@ -347,10 +426,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(
-                        isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                        isSelected
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_unchecked,
                         color: AppTheme.primaryGreen,
                       ),
-                      title: Text(addr.fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      title: Text(
+                        addr.fullName,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       subtitle: Text("${addr.summary}\n${addr.phoneNumber}"),
                       isThreeLine: true,
                       onTap: () {
@@ -364,13 +448,24 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               const Divider(),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.add_location_alt_outlined, color: AppTheme.primaryGreen),
-                title: const Text("Deliver to New Address", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryGreen)),
+                leading: const Icon(
+                  Icons.add_location_alt_outlined,
+                  color: AppTheme.primaryGreen,
+                ),
+                title: const Text(
+                  "Deliver to New Address",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryGreen,
+                  ),
+                ),
                 onTap: () async {
                   Navigator.pop(context);
                   final result = await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const AddAddressScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const AddAddressScreen(),
+                    ),
                   );
                   if (result == true) _fetchDefaultAddress();
                 },
@@ -401,9 +496,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           ),
           child: const Row(
             children: [
-              Icon(Icons.add_location_alt_outlined, color: AppTheme.primaryGreen),
+              Icon(
+                Icons.add_location_alt_outlined,
+                color: AppTheme.primaryGreen,
+              ),
               SizedBox(width: 12),
-              Text("Add Shipping Address", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryGreen)),
+              Text(
+                "Add Shipping Address",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryGreen,
+                ),
+              ),
               Spacer(),
               Icon(Icons.chevron_right, color: Colors.grey),
             ],
@@ -424,9 +528,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.location_on_outlined, color: AppTheme.primaryGreen, size: 20),
+              const Icon(
+                Icons.location_on_outlined,
+                color: AppTheme.primaryGreen,
+                size: 20,
+              ),
               const SizedBox(width: 8),
-              Text(_selectedAddress!.fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                _selectedAddress!.fullName,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               const Spacer(),
               TextButton(
                 onPressed: _showAddressSelectionModal,
