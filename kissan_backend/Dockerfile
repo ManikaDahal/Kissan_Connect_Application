@@ -20,17 +20,16 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create a non-root user (UID 1000 for Hugging Face)
-RUN useradd -m -u 1000 user
+# Copy project files
+COPY . /app/
 
-# Copy project files and ensure they are owned by our user
-COPY --chown=user:user . /app/
-
-# Switch to the non-root user
-USER user
-
-# Ensure the entrypoint is executable
+# Ensure the entrypoint is executable (must be done as root)
 RUN chmod +x /app/docker-entrypoint.sh
+
+# Create a non-root user (UID 1000 for Hugging Face) and give permissions
+RUN useradd -m -u 1000 user && \
+    chown -R user:user /app
+USER user
 
 # Expose the port
 EXPOSE 7860
