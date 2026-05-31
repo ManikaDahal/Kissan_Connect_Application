@@ -23,5 +23,6 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           
-          # Force push the backend subfolder to HF
-          git subtree push --prefix kissan_backend https://manika051:$HF_TOKEN@huggingface.co/spaces/manika051/KissanConnect main --force
+          # Force push the backend subfolder using a temporary branch
+          git subtree split --prefix kissan_backend -b tmp-deploy
+          git push https://manika051:$HF_TOKEN@huggingface.co/spaces/manika051/KissanConnect tmp-deploy:main --force
