@@ -1,0 +1,27 @@
+name: Deploy Backend to Hugging Face
+
+on:
+  push:
+    branches:
+      - main
+      - hugging-face-deployment # Remove this later if you only want to deploy from main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Required for git subtree
+
+      - name: Push to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # Set up git identity
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          
+          # Force push the backend subfolder to HF
+          git subtree push --prefix kissan_backend https://manika051:$HF_TOKEN@huggingface.co/spaces/manika051/KissanConnect main --force
