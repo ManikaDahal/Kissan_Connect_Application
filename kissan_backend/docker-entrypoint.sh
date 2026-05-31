@@ -19,4 +19,4 @@ exec gunicorn kissan_core.wsgi:application \
     --bind 0.0.0.0:7860 \
     --workers 3 \
     --timeout 120 \
-    --access-log-file -
+    --access-logfile -
