@@ -20,19 +20,16 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project
-COPY . /app/
-
-# Create a non-root user and switch to it
-# Hugging Face Spaces run with UID 1000
+# Create a non-root user (UID 1000 for Hugging Face)
 RUN useradd -m -u 1000 user
-USER user
 
-# Make entrypoint script executable
-# Note: Since we are switching to user 1000, we ensure the file is owned by them or executable
-# Actually, COPY might need --chown=user:user
+# Copy project files and ensure they are owned by our user
 COPY --chown=user:user . /app/
 
+# Switch to the non-root user
+USER user
+
+# Ensure the entrypoint is executable
 RUN chmod +x /app/docker-entrypoint.sh
 
 # Expose the port
