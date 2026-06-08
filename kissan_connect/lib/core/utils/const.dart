@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class Constants {
   static const String apiBaseUrl =
-      "https://kissan-connect-application.onrender.com";
+      "https://manika051-kissanconnect.hf.space";
 
   // Payment Keys
   static const String stripePublishableKey =
