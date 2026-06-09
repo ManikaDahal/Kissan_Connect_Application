@@ -169,7 +169,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const Divider(height: 30),
                   
                   // Seller Section
-                  if (userRole == 'seller' && isSellerVerified)
+                  if ((userRole == 'seller' && isSellerVerified) || sellerStatus == 'approved')
                     _buildProfileItem(
                       Icons.dashboard_customize_outlined,
                       "Seller Dashboard",
