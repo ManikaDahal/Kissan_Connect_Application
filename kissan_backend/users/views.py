@@ -23,22 +23,43 @@ def _get_tokens(user):
     }
 
 def _send_email_async(subject, message, recipient_list):
-    """Helper to send email in a background thread using Django's SMTP."""
+    """Helper to send email via Brevo HTTP API (SMTP is blocked on cloud platforms)."""
     def send():
         try:
-            from django.core.mail import send_mail
+            import os
+            import requests as http_requests
             from django.conf import settings
-            
-            send_mail(
-                subject,
-                message,
-                settings.EMAIL_HOST_USER,
-                recipient_list,
-                fail_silently=False,
+
+            # Get the API key from environment variables (Hugging Face Secrets)
+            api_key = os.environ.get('BREVO_API_KEY')
+            if not api_key:
+                print('[ERROR] BREVO_API_KEY is not set. Cannot send email.')
+                return
+
+            to_email = recipient_list[0] if isinstance(recipient_list, list) else recipient_list
+            print(f'[DEBUG] Sending email via Brevo to {to_email}')
+
+            resp = http_requests.post(
+                "https://api.brevo.com/v3/smtp/email",
+                headers={
+                    "api-key": api_key,
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "sender": {"name": "Kissan Connect", "email": "noreply@kissanconnect.com"},
+                    "to": [{"email": to_email}],
+                    "subject": subject,
+                    "textContent": message,
+                },
+                timeout=15,
             )
-            print(f'[DEBUG] Email sent successfully to {recipient_list}')
+
+            if resp.status_code in (200, 201):
+                print(f'[DEBUG] Email sent successfully via Brevo to {to_email}')
+            else:
+                print(f'[ERROR] Brevo API error {resp.status_code}: {resp.text}')
         except Exception as e:
-            print(f'[ERROR] Email delivery failed for {recipient_list}: {str(e)}')
+            print(f'[ERROR] Brevo email delivery failed for {recipient_list}: {str(e)}')
 
     threading.Thread(target=send).start()
 
