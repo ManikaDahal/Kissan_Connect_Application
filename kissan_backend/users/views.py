@@ -162,36 +162,36 @@ class LoginView(views.APIView):
 
 
 #Google Login
-# from .services.google_auth import verify_google_token
+from .services.google_auth import verify_google_token
 
-# class GoogleLoginView(views.APIView):
-#     """Login/Signup with Google ID Token."""
-#     permission_classes = [permissions.AllowAny]
+class GoogleLoginView(views.APIView):
+    """Login/Signup with Google ID Token."""
+    permission_classes = [permissions.AllowAny]
 
-#     def post(self, request):
-#         id_token = request.data.get('id_token')
-#         if not id_token:
-#             return Response({'error': 'id_token is required'}, status=400)
+    def post(self, request):
+        id_token = request.data.get('id_token')
+        if not id_token:
+            return Response({'error': 'id_token is required'}, status=400)
 
-#         try:
-#             google_data = verify_google_token(id_token)
-#             email = google_data.get('email')
-#             name = google_data.get('name', '')
+        try:
+            google_data = verify_google_token(id_token)
+            email = google_data.get('email')
+            name = google_data.get('name', '')
             
-#             user, created = User.objects.get_or_create(
-#                 email=email,
-#                 defaults={'full_name': name}
-#             )
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={'full_name': name}
+            )
             
-#             tokens = _get_tokens(user)
-#             return Response({
-#                 'message': 'Login successful',
-#                 'user': UserSerializer(user).data,
-#                 'is_new_user': created,
-#                 **tokens,
-#             }, status=200)
-#         except Exception as e:
-#             return Response({'error': str(e)}, status=400)
+            tokens = _get_tokens(user)
+            return Response({
+                'message': 'Login successful',
+                'user': UserSerializer(user).data,
+                'is_new_user': created,
+                **tokens,
+            }, status=200)
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
 
 
 

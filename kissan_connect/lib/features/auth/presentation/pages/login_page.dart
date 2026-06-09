@@ -12,6 +12,7 @@ import 'package:kissan_connect/core/providers/nav_provider.dart';
 import 'package:kissan_connect/core/providers/cart_provider.dart';
 import 'package:kissan_connect/core/utils/error_helper.dart';
 import '../widgets/social_button.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -259,8 +260,36 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     SocialButton(
                       iconPath: "assets/images/google_logo.png",
                       label: "Sign in with Google",
-                      onPressed: () {
-                        //Implement Google Sign-In
+                      onPressed: _isLoading ? () {} : () async {
+                        setState(() => _isLoading = true);
+                        try {
+                          final GoogleSignIn googleSignIn = GoogleSignIn(
+                            serverClientId: '344012641554-kuche2uqq1mtm411l6eq2bu5ueadm2dd.apps.googleusercontent.com',
+                          );
+                          
+                          final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+                          if (googleUser != null) {
+                            final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+                            final String? idToken = googleAuth.idToken;
+                            
+                            if (idToken != null) {
+                              await ref.read(authRepositoryProvider).googleLogin(idToken);
+                              await ref.read(cartProvider.notifier).fetchCart();
+                              ref.read(navProvider.notifier).state = 0;
+                              if (mounted) {
+                                RouteGenerator.navigateToPageWithoutStack(context, "/bottomNavbar");
+                              }
+                            }
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ErrorHelper.showSnackBarError(context, e);
+                          }
+                        } finally {
+                          if (mounted) {
+                            setState(() => _isLoading = false);
+                          }
+                        }
                       },
                     ),
                     const SizedBox(height: 40),
