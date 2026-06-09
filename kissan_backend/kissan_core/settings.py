@@ -106,10 +106,14 @@ TEMPLATES = [
 WSGI_APPLICATION = 'kissan_core.wsgi.application'
 
 
-# Database
+# Database configuration (Enforce PostgreSQL)
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is MISSING. PostgreSQL is required.")
+
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL') or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        default=DATABASE_URL,
         conn_max_age=60,
         conn_health_checks=True,
     )

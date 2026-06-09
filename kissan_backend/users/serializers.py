@@ -22,6 +22,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             email=validated_data['email'],
             password=validated_data['password'],
             full_name=validated_data.get('full_name', ''),
+            is_verified=True, # Auto-verify on signup
         )
         return user
 
