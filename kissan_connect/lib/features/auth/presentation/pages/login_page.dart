@@ -38,11 +38,25 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 Container(
                   height: MediaQuery.of(context).size.height * 0.35,
                   decoration: const BoxDecoration(
-                    color: primaryColor,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        primaryColor,
+                        darkGreen,
+                      ],
+                    ),
                     borderRadius: BorderRadius.only(
                       bottomLeft: Radius.circular(40),
                       bottomRight: Radius.circular(40),
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, 5),
+                      ),
+                    ],
                   ),
                 ),
                 SafeArea(
@@ -181,7 +195,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             )
                           : const Text(
                               loginStr,
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                             ),
                     ),
                     const SizedBox(height: 30),

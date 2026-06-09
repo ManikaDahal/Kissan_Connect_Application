@@ -23,32 +23,22 @@ def _get_tokens(user):
     }
 
 def _send_email_async(subject, message, recipient_list):
-    """Helper to send email in a background thread using Resend API to prevent Render SMTP blocks."""
+    """Helper to send email in a background thread using Django's SMTP."""
     def send():
         try:
-            import resend
+            from django.core.mail import send_mail
             from django.conf import settings
             
-            if not settings.RESEND_API_KEY:
-                print('[ERROR] RESEND_API_KEY is not set. Cannot send email.')
-                return
-
-            resend.api_key = settings.RESEND_API_KEY
-            print(f'[DEBUG] Resend email sending started for {recipient_list}')
-            
-            # Note: On Resend Free plan, you can only send from 'onboarding@resend.dev'
-            # and only to your own verified email address unless you add a domain.
-            params = {
-                "from": "KissanConnect <onboarding@resend.dev>",
-                "to": recipient_list,
-                "subject": subject,
-                "text": message,
-            }
-
-            resend.Emails.send(params)
-            print(f'[DEBUG] Resend email sent successfully to {recipient_list}')
+            send_mail(
+                subject,
+                message,
+                settings.EMAIL_HOST_USER,
+                recipient_list,
+                fail_silently=False,
+            )
+            print(f'[DEBUG] Email sent successfully to {recipient_list}')
         except Exception as e:
-            print(f'[ERROR] Resend background delivery failed for {recipient_list}: {str(e)}')
+            print(f'[ERROR] Email delivery failed for {recipient_list}: {str(e)}')
 
     threading.Thread(target=send).start()
 

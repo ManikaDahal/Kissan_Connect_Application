@@ -166,7 +166,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                         )
                       : const Text(
                           SignupStr,
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                 ),
                 const SizedBox(height: 30),
