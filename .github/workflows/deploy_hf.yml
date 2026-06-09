@@ -3,8 +3,7 @@ name: Deploy Backend to Hugging Face
 on:
   push:
     branches:
-      - main
-      - hugging-face-deployment # Remove this later if you only want to deploy from main
+      - '**'
 
 jobs:
   deploy:
