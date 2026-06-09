@@ -27,13 +27,16 @@ class ProductSerializer(serializers.ModelSerializer):
     reviews = ReviewSerializer(many=True, read_only=True)
     average_rating = serializers.ReadOnlyField()
     total_reviews = serializers.ReadOnlyField()
+    seller_name = serializers.ReadOnlyField(source='seller.full_name')
+    shop_name = serializers.ReadOnlyField(source='seller.seller_profile.shop_name')
 
     class Meta:
         model = Product
         fields = (
             'id', 'name', 'category', 'category_name', 'description', 
             'price', 'stock', 'weight', 'image', 'is_famous', 
-            'created_at', 'reviews', 'average_rating', 'total_reviews'
+            'created_at', 'reviews', 'average_rating', 'total_reviews',
+            'seller', 'seller_name', 'shop_name'
         )
 
     def get_category_name(self, obj):
@@ -50,13 +53,14 @@ class ProductListSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     average_rating = serializers.ReadOnlyField()
     total_reviews = serializers.ReadOnlyField()
+    shop_name = serializers.ReadOnlyField(source='seller.seller_profile.shop_name')
 
     class Meta:
         model = Product
         fields = (
             'id', 'name', 'category', 'category_name', 'description',
             'price', 'stock', 'weight', 'image', 'is_famous',
-            'created_at', 'average_rating', 'total_reviews'
+            'created_at', 'average_rating', 'total_reviews', 'shop_name'
         )
 
     def get_category_name(self, obj):
