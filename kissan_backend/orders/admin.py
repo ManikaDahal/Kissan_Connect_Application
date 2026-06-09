@@ -1,3 +1,4 @@
+from kissan_backend.orders.models import Transaction
 from django.contrib import admin
 from .models import Order, OrderItem
 
@@ -19,3 +20,9 @@ class OrderAdmin(admin.ModelAdmin):
 class OrderItemAdmin(admin.ModelAdmin):
     list_display = ('order', 'product', 'quantity', 'price')
     list_filter = ('product__category',)
+
+@admin.register(Transaction)
+class TransactionAdmin(admin.ModelAdmin):
+    list_display = ('order', 'seller', 'gross_amount', 'commission_amount', 'net_payout', 'status', 'created_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('seller__email', 'order__id')
