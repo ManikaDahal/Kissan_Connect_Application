@@ -33,10 +33,15 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-#=6#keygx7dq43ohukg!6
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = [
+    'https://manika051-kissanconnect.hf.space',
+    'https://*.hf.space',
+]
+
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
-    CSRF_TRUSTED_ORIGINS = [f'https://{RENDER_EXTERNAL_HOSTNAME}', f'https://*.onrender.com']
+    CSRF_TRUSTED_ORIGINS.extend([f'https://{RENDER_EXTERNAL_HOSTNAME}', 'https://*.onrender.com'])
 
 
 # Application definition
