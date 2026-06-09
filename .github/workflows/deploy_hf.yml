@@ -25,5 +25,5 @@ jobs:
 
           git init
           git add .
-          git commit -m "Deploy: ${{ github.sha }}"
+          git commit -m "${{ github.event.head_commit.message }}"
           git push https://manika051:$HF_TOKEN@huggingface.co/spaces/manika051/KissanConnect HEAD:main --force
