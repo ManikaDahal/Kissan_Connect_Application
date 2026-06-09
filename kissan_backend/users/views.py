@@ -46,7 +46,7 @@ def _send_email_async(subject, message, recipient_list):
                     "Content-Type": "application/json",
                 },
                 json={
-                    "sender": {"name": "Kissan Connect", "email": "noreply@kissanconnect.com"},
+                    "sender": {"name": "Kissan Connect", "email": "niraulasabina08@gmail.com"},
                     "to": [{"email": to_email}],
                     "subject": subject,
                     "textContent": message,
