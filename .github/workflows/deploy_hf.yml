@@ -3,7 +3,7 @@ name: Deploy Backend to Hugging Face
 on:
   push:
     branches:
-      - '**'
+      - main
 
 jobs:
   deploy:
@@ -11,17 +11,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0 # Required for git subtree
 
-      - name: Push to Hugging Face
+      - name: Deploy kissan_backend to Hugging Face
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          # Set up git identity
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-          
-          # Force push the backend subfolder using a temporary branch
-          git subtree split --prefix kissan_backend -b tmp-deploy
-          git push https://manika051:$HF_TOKEN@huggingface.co/spaces/manika051/KissanConnect tmp-deploy:main --force
+
+          # Copy backend into a temp folder and push directly
+          cp -r kissan_backend /tmp/hf_deploy
+          cd /tmp/hf_deploy
+
+          git init
+          git add .
+          git commit -m "Deploy: ${{ github.sha }}"
+          git push https://manika051:$HF_TOKEN@huggingface.co/spaces/manika051/KissanConnect HEAD:main --force
