@@ -1,5 +1,5 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:kissan_connect/services/api_service.dart';
 import 'package:kissan_connect/core/utils/route_const.dart';
 import 'package:kissan_connect/core/utils/route_generator.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -18,12 +18,23 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     _initPackageInfo();
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 2), () async {
       if (mounted) {
-        RouteGenerator.navigateToPageWithoutStack(
-          context,
-          Routes.onboardingRoute,
-        );
+        final bool loggedIn = await ApiService.isLoggedIn();
+        
+        if (mounted) {
+          if (loggedIn) {
+            RouteGenerator.navigateToPageWithoutStack(
+              context,
+              Routes.bottomNavBarRoute,
+            );
+          } else {
+            RouteGenerator.navigateToPageWithoutStack(
+              context,
+              Routes.onboardingRoute,
+            );
+          }
+        }
       }
     });
   }
