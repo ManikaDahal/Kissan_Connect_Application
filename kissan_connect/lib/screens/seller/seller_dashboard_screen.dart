@@ -183,6 +183,8 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text("Price: Rs. ${product['price']}"),
+            Text("Store: ${product['shop_name'] ?? 'Your Shop'}", style: const TextStyle(color: Colors.blue, fontSize: 12)),
+            const SizedBox(height: 4),
             Text("Stock: ${product['stock']} units", style: TextStyle(color: (product['stock'] ?? 0) < 5 ? Colors.red : Colors.green)),
           ],
         ),
