@@ -25,4 +25,21 @@ class SellerProfileAdmin(ModelAdmin):
     list_display = ('shop_name', 'user', 'payout_gateway', 'status', 'created_at')
     list_filter = ('status', 'payout_gateway')
     search_fields = ('shop_name', 'user__email')
+    list_editable = ('status',)
     readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Business Information', {
+            'fields': ('user', 'shop_name', 'shop_description', 'shop_address', 'status')
+        }),
+        ('Verification Documents', {
+            'fields': ('PAN_NUMBER', 'citizenship_front', 'citizenship_back')
+        }),
+        ('Payout Details', {
+            'fields': ('payout_gateway', 'payout_id')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
