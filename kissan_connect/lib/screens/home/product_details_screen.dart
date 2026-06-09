@@ -307,6 +307,35 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
           product['description'] ?? "No description available.",
           style: TextStyle(color: Colors.grey[600], height: 1.5),
         ),
+        const SizedBox(height: 24),
+        const Divider(),
+        const SizedBox(height: 16),
+        // Seller Information
+        Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: AppTheme.primaryGreen.withOpacity(0.1),
+              child: const Icon(Icons.store, color: AppTheme.primaryGreen),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Sold By:", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(
+                    product['shop_name'] ?? "Kissan Vendor",
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    product['shop_address'] ?? "Address not provided",
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }

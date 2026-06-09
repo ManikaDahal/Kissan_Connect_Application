@@ -66,6 +66,11 @@ class ProductCard extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  Text(
+                    product['shop_name'] ?? "Store",
+                    style: TextStyle(color: Colors.grey[500], fontSize: 10),
+                    maxLines: 1,
+                  ),
                   const SizedBox(height: 4),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
