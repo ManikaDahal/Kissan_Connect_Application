@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kissan_connect/services/api_service.dart';
 import 'package:kissan_connect/widgets/custom_app_bar.dart';
+import 'add_product_screen.dart';
 
 class SellerDashboardScreen extends StatefulWidget {
   const SellerDashboardScreen({super.key});
@@ -92,12 +93,20 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                     children: [
                       const Text("My Inventory", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                       ElevatedButton.icon(
-                        onPressed: () {
-                          // TODO: Implement Add Product
+                        onPressed: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const AddProductScreen()),
+                          );
+                          if (result == true) {
+                            _fetchMyProducts();
+                          }
                         },
                         icon: const Icon(Icons.add),
                         label: const Text("Add New"),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white),
                       ),
                     ],
                   ),
