@@ -10,6 +10,7 @@ import 'package:kissan_connect/widgets/custom_textformfield.dart';
 import 'package:kissan_connect/core/providers/nav_provider.dart';
 import 'package:kissan_connect/core/providers/cart_provider.dart';
 import '../widgets/social_button.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class SignupPage extends ConsumerStatefulWidget {
   const SignupPage({super.key});
@@ -184,8 +185,38 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                 SocialButton(
                   iconPath: "assets/images/google_logo.png",
                   label: "Signup with Google",
-                  onPressed: () {
-                    // TODO: Implement Google Sign-In
+                  onPressed: _isLoading ? () {} : () async {
+                    setState(() => _isLoading = true);
+                    try {
+                      final GoogleSignIn googleSignIn = GoogleSignIn(
+                        serverClientId: '344012641554-kuche2uqq1mtm411l6eq2bu5ueadm2dd.apps.googleusercontent.com',
+                      );
+                      
+                      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+                      if (googleUser != null) {
+                        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+                        final String? idToken = googleAuth.idToken;
+                        
+                        if (idToken != null) {
+                          await ref.read(authRepositoryProvider).googleLogin(idToken);
+                          await ref.read(cartProvider.notifier).fetchCart();
+                          ref.read(navProvider.notifier).state = 0;
+                          if (mounted) {
+                            RouteGenerator.navigateToPageWithoutStack(context, "/bottomNavbar");
+                          }
+                        }
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Google Sign-In failed: $e')),
+                        );
+                      }
+                    } finally {
+                      if (mounted) {
+                        setState(() => _isLoading = false);
+                      }
+                    }
                   },
                 ),
                 const SizedBox(height: 40),

@@ -236,3 +236,6 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '').strip()
 
 # Resend API Configuration
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '').strip()
+
+# Google Auth
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '').strip()
