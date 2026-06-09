@@ -26,7 +26,13 @@ class SellerProfileAdmin(ModelAdmin):
     list_filter = ('status', 'payout_gateway')
     search_fields = ('shop_name', 'user__email')
     list_editable = ('status',)
-    readonly_fields = ('created_at', 'updated_at')
+    
+    # Protecting seller data: Admin can only change the "Status"
+    readonly_fields = (
+        'user', 'shop_name', 'shop_description', 'shop_address', 
+        'PAN_NUMBER', 'citizenship_front', 'citizenship_back', 
+        'payout_gateway', 'payout_id', 'created_at', 'updated_at'
+    )
     
     fieldsets = (
         ('Business Information', {
@@ -37,9 +43,5 @@ class SellerProfileAdmin(ModelAdmin):
         }),
         ('Payout Details', {
             'fields': ('payout_gateway', 'payout_id')
-        }),
-        ('Metadata', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',),
         }),
     )
