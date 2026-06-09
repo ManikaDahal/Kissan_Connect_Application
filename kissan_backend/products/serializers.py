@@ -29,6 +29,7 @@ class ProductSerializer(serializers.ModelSerializer):
     total_reviews = serializers.ReadOnlyField()
     seller_name = serializers.ReadOnlyField(source='seller.full_name')
     shop_name = serializers.ReadOnlyField(source='seller.seller_profile.shop_name')
+    shop_address = serializers.ReadOnlyField(source='seller.seller_profile.shop_address')
 
     class Meta:
         model = Product
@@ -36,7 +37,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'id', 'name', 'category', 'category_name', 'description', 
             'price', 'stock', 'weight', 'image', 'is_famous', 
             'created_at', 'reviews', 'average_rating', 'total_reviews',
-            'seller', 'seller_name', 'shop_name'
+            'seller', 'seller_name', 'shop_name', 'shop_address'
         )
 
     def get_category_name(self, obj):
@@ -44,7 +45,11 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def get_image(self, obj):
         if obj.image:
-            return obj.image.url
+            url = obj.image.url
+            # Force Cloudinary to serve as JPG to avoid AVIF compression errors in Flutter
+            if 'cloudinary' in url and '/upload/' in url:
+                return url.replace('/upload/', '/upload/f_jpg/')
+            return url
         return None
 
 class ProductListSerializer(serializers.ModelSerializer):
@@ -54,13 +59,14 @@ class ProductListSerializer(serializers.ModelSerializer):
     average_rating = serializers.ReadOnlyField()
     total_reviews = serializers.ReadOnlyField()
     shop_name = serializers.ReadOnlyField(source='seller.seller_profile.shop_name')
+    shop_address = serializers.ReadOnlyField(source='seller.seller_profile.shop_address')
 
     class Meta:
         model = Product
         fields = (
             'id', 'name', 'category', 'category_name', 'description',
             'price', 'stock', 'weight', 'image', 'is_famous',
-            'created_at', 'average_rating', 'total_reviews', 'shop_name'
+            'created_at', 'average_rating', 'total_reviews', 'shop_name', 'shop_address'
         )
 
     def get_category_name(self, obj):
@@ -68,5 +74,8 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     def get_image(self, obj):
         if obj.image:
-            return obj.image.url
+            url = obj.image.url
+            if 'cloudinary' in url and '/upload/' in url:
+                return url.replace('/upload/', '/upload/f_jpg/')
+            return url
         return None
