@@ -4,6 +4,8 @@ import 'package:kissan_connect/core/utils/route_const.dart';
 import 'package:kissan_connect/widgets/custom_app_bar.dart';
 import 'package:kissan_connect/screens/profile/order_history_screen.dart';
 import 'package:kissan_connect/screens/profile/address_book_screen.dart';
+import 'package:kissan_connect/screens/profile/seller_registration_screen.dart';
+import 'package:kissan_connect/screens/seller/seller_dashboard_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -17,6 +19,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? userName;
   String? userEmail;
   String? errorMessage;
+  String? userRole;
+  bool isSellerVerified = false;
+  String? sellerStatus;
 
   @override
   void initState() {
@@ -34,8 +39,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               response['name'] ??
               response['first_name'];
           userEmail = response['email'];
+          userRole = response['role'];
+          isSellerVerified = response['is_seller_verified'] ?? false;
           isLoading = false;
         });
+        _fetchSellerStatus();
       }
     } catch (e) {
       if (mounted) {
@@ -44,6 +52,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
           isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _fetchSellerStatus() async {
+    try {
+      final statusResponse = await ApiService.get('users/seller/status/');
+      if (mounted) {
+        setState(() {
+          sellerStatus = statusResponse['status'];
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching seller status: $e");
     }
   }
 
@@ -145,6 +166,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     "Payment Methods",
                     () {},
                   ),
+                  const Divider(height: 30),
+                  
+                  // Seller Section
+                  if (userRole == 'seller' && isSellerVerified)
+                    _buildProfileItem(
+                      Icons.dashboard_customize_outlined,
+                      "Seller Dashboard",
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const SellerDashboardScreen()),
+                        );
+                      },
+                      textColor: Colors.green.shade700,
+                      iconColor: Colors.green.shade700,
+                    )
+                  else if (sellerStatus == 'pending')
+                    _buildProfileItem(
+                      Icons.hourglass_empty,
+                      "Application Pending",
+                      () {},
+                      textColor: Colors.orange,
+                      iconColor: Colors.orange,
+                    )
+                  else
+                    _buildProfileItem(
+                      Icons.storefront_outlined,
+                      "Become a Seller",
+                      () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const SellerRegistrationScreen()),
+                        );
+                        if (result == true) {
+                          _fetchProfileData();
+                        }
+                      },
+                      textColor: Colors.blue,
+                      iconColor: Colors.blue,
+                    ),
+                  
                   const Divider(height: 30),
                   _buildProfileItem(Icons.settings_outlined, "Settings", () {}),
                   _buildProfileItem(

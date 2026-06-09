@@ -58,7 +58,8 @@ class SellerProfileSerializer(serializers.ModelSerializer):
         model = SellerProfile
         fields = [
             'id', 'shop_name', 'shop_description', 'shop_address',
-            'citizenship_front', 'citizenship_back', 'pan_number', 'status'
+            'citizenship_front', 'citizenship_back', 'PAN_NUMBER', 
+            'payout_gateway', 'payout_id', 'status'
         ]
         read_only_fields = ['status']
 

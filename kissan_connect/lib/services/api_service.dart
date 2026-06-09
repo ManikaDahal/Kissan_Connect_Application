@@ -136,15 +136,63 @@ class ApiService {
     }
   }
 
+  static Future<dynamic> postMultipart(
+    String endpoint,
+    Map<String, String> fields,
+    Map<String, String> files,
+  ) async {
+    final token = await _getToken();
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/$endpoint'),
+      );
+
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+
+      request.fields.addAll(fields);
+
+      for (var entry in files.entries) {
+        if (entry.value.isNotEmpty) {
+          request.files.add(await http.MultipartFile.fromPath(entry.key, entry.value));
+        }
+      }
+
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 120));
+      final response = await http.Response.fromStream(streamedResponse);
+      return _handleResponse(response);
+    } catch (e) {
+      if (e is TimeoutException) {
+        throw ApiException("Request timed out. Please try again.");
+      }
+      rethrow;
+    }
+  }
+
   static dynamic _handleResponse(http.Response response) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) return null;
-      return jsonDecode(response.body);
+      try {
+        return jsonDecode(response.body);
+      } catch (e) {
+        return response.body; 
+      }
     } else {
-      final decoded = response.body.isNotEmpty ? jsonDecode(response.body) : {};
-      final Map<String, dynamic> body = decoded is Map<String, dynamic>
-          ? decoded
-          : {};
+      Map<String, dynamic> body = {};
+      try {
+        final decoded = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+        body = decoded is Map<String, dynamic> ? decoded : {};
+      } catch (e) {
+        // Not a JSON response (likely HTML error page)
+        if (response.statusCode == 500) {
+          throw ApiException("Server Error (500). Please check backend logs.");
+        } else if (response.statusCode == 404) {
+          throw ApiException("Endpoint not found (404).");
+        }
+        throw ApiException("Server returned an unexpected response (${response.statusCode}).");
+      }
           
       String errorMessage = body['error'] ?? body['detail'] ?? 'An error occurred';
       
