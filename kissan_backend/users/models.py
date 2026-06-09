@@ -122,5 +122,13 @@ class SellerProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def save(self, *args, **kwargs):
+        # Automatically update user role and verification when profile is approved
+        if self.status == 'approved':
+            self.user.role = 'seller'
+            self.user.is_seller_verified = True
+            self.user.save()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.shop_name} ({self.user.email})"
