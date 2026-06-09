@@ -1,6 +1,5 @@
-from kissan_backend.orders.models import Transaction
 from django.contrib import admin
-from .models import Order, OrderItem
+from .models import Order, OrderItem, Transaction
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
