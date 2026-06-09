@@ -24,8 +24,16 @@ class User(AbstractUser):
     username = None
     email = models.EmailField(unique=True)
     phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
+    ROLE_CHOICES = [
+        ('buyer', 'Buyer'),
+        ('seller', 'Seller'),
+        ('admin', 'Admin'),
+    ]
+    
     full_name = models.CharField(max_length=100, blank=True)
     is_verified = models.BooleanField(default=False)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='buyer')
+    is_seller_verified = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name']
@@ -85,3 +93,42 @@ class UserAddress(models.Model):
 
     def __str__(self):
         return f"{self.full_name} - {self.city}, {self.province}"
+
+
+class SellerProfile(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='seller_profile')
+    shop_name = models.CharField(max_length=150)
+    shop_description = models.TextField(blank=True)
+    shop_address = models.TextField()
+    citizenship_front = models.ImageField(upload_to='seller_docs/', null=True, blank=True)
+    citizenship_back = models.ImageField(upload_to='seller_docs/', null=True, blank=True)
+    PAN_NUMBER = models.CharField(max_length=20, blank=True, null=True)
+    
+    # Payout Details (eSewa/Stripe for College Project)
+    PAYMENT_GATEWAY_CHOICES = [
+        ('esewa', 'eSewa'),
+        ('stripe', 'Stripe'),
+    ]
+    payout_gateway = models.CharField(max_length=20, choices=PAYMENT_GATEWAY_CHOICES, default='esewa')
+    payout_id = models.CharField(max_length=150, help_text="eSewa ID (Phone) or Stripe Account ID")
+    
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        # Automatically update user role and verification when profile is approved
+        if self.status == 'approved':
+            self.user.role = 'seller'
+            self.user.is_seller_verified = True
+            self.user.save()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.shop_name} ({self.user.email})"

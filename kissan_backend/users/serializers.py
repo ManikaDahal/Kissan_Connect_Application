@@ -1,13 +1,13 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-from .models import User, UserAddress
+from .models import User, UserAddress, SellerProfile
 
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email', 'full_name', 'phone_number', 'is_verified', 'date_joined']
-        read_only_fields = ['id', 'is_verified', 'date_joined']
+        fields = ['id', 'email', 'full_name', 'phone_number', 'is_verified', 'role', 'is_seller_verified', 'date_joined']
+        read_only_fields = ['id', 'is_verified', 'role', 'is_seller_verified', 'date_joined']
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -22,6 +22,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             email=validated_data['email'],
             password=validated_data['password'],
             full_name=validated_data.get('full_name', ''),
+            is_verified=True, # Auto-verify on signup
         )
         return user
 
@@ -51,3 +52,23 @@ class AddressSerializer(serializers.ModelSerializer):
         if validated_data.get('is_default'):
             UserAddress.objects.filter(user=instance.user, is_default=True).update(is_default=False)
         return super().update(instance, validated_data)
+
+
+class SellerProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SellerProfile
+        fields = [
+            'id', 'shop_name', 'shop_description', 'shop_address',
+            'citizenship_front', 'citizenship_back', 'PAN_NUMBER', 
+            'payout_gateway', 'payout_id', 'status'
+        ]
+        read_only_fields = ['status']
+
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        # If user already has a profile, update it instead of creating new
+        profile, created = SellerProfile.objects.update_or_create(
+            user=validated_data['user'],
+            defaults=validated_data
+        )
+        return profile

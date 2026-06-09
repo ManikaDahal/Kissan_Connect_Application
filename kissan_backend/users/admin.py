@@ -1,14 +1,28 @@
 from django.contrib import admin
-from .models import User, EmailOTP
+from .models import User, EmailOTP, SellerProfile
+from unfold.admin import ModelAdmin
 
 @admin.register(User)
-class UserAdmin(admin.ModelAdmin):
-    list_display = ('email', 'full_name', 'phone_number', 'is_verified', 'is_staff', 'date_joined')
+class UserAdmin(ModelAdmin):
+    list_display = ('email', 'full_name', 'role', 'is_seller_verified', 'is_verified', 'is_staff', 'date_joined')
     search_fields = ('email', 'full_name', 'phone_number')
-    list_filter = ('is_verified', 'is_staff')
+    list_filter = ('role', 'is_seller_verified', 'is_verified', 'is_staff')
+    fieldsets = (
+        (None, {'fields': ('email', 'password')}),
+        ('Personal info', {'fields': ('full_name', 'phone_number')}),
+        ('Permissions', {'fields': ('role', 'is_seller_verified', 'is_active', 'is_staff', 'is_superuser')}),
+        ('Important dates', {'fields': ('last_login', 'date_joined')}),
+    )
 
 @admin.register(EmailOTP)
-class EmailOTPAdmin(admin.ModelAdmin):
+class EmailOTPAdmin(ModelAdmin):
     list_display = ('email', 'otp', 'validated', 'created_at')
     search_fields = ('email',)
     list_filter = ('validated',)
+
+@admin.register(SellerProfile)
+class SellerProfileAdmin(ModelAdmin):
+    list_display = ('shop_name', 'user', 'payout_gateway', 'status', 'created_at')
+    list_filter = ('status', 'payout_gateway')
+    search_fields = ('shop_name', 'user__email')
+    readonly_fields = ('created_at', 'updated_at')

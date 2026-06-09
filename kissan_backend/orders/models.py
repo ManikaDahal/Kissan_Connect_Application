@@ -38,3 +38,23 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name if self.product else 'Deleted Product'}"
+
+
+class Transaction(models.Model):
+    TRANSACTION_STATUS = (
+        ('held', 'Held'),
+        ('released', 'Released'),
+        ('refunded', 'Refunded'),
+    )
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='transactions')
+    seller = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='transactions')
+    gross_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    commission_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    net_payout = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=15, choices=TRANSACTION_STATUS, default='held')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"TXN for {self.seller.email} - {self.status}"

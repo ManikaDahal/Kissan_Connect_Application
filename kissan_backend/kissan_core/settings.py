@@ -33,10 +33,15 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-#=6#keygx7dq43ohukg!6
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = [
+    'https://manika051-kissanconnect.hf.space',
+    'https://*.hf.space',
+]
+
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
-    CSRF_TRUSTED_ORIGINS = [f'https://{RENDER_EXTERNAL_HOSTNAME}', f'https://*.onrender.com']
+    CSRF_TRUSTED_ORIGINS.extend([f'https://{RENDER_EXTERNAL_HOSTNAME}', 'https://*.onrender.com'])
 
 
 # Application definition
@@ -101,10 +106,14 @@ TEMPLATES = [
 WSGI_APPLICATION = 'kissan_core.wsgi.application'
 
 
-# Database
+# Database configuration (Enforce PostgreSQL)
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is MISSING. PostgreSQL is required.")
+
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL') or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        default=DATABASE_URL,
         conn_max_age=60,
         conn_health_checks=True,
     )

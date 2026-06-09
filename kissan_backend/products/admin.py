@@ -8,9 +8,9 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'category', 'price', 'stock', 'weight', 'is_famous', 'created_at')
-    search_fields = ('name', 'description')
-    list_filter = ('category', 'is_famous')
+    list_display = ('name', 'seller', 'category', 'price', 'stock', 'weight', 'is_famous', 'created_at')
+    search_fields = ('name', 'description', 'seller__email')
+    list_filter = ('category', 'is_famous', 'seller')
     list_editable = ('is_famous', 'stock', 'weight')
 
 @admin.register(Review)

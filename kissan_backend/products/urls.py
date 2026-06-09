@@ -2,8 +2,9 @@ from django.urls import path
 from .views import (
     CategoryListCreateView, CategoryDetailView,
     ProductListCreateView, ProductDetailView,
-    ReviewListCreateView
+    ReviewListCreateView, SellerProductViewSet
 )
+from rest_framework.routers import DefaultRouter
 
 urlpatterns = [
     path('categories/', CategoryListCreateView.as_view(), name='category-list'),
@@ -12,3 +13,7 @@ urlpatterns = [
     path('products/<int:pk>/', ProductDetailView.as_view(), name='product-detail'),
     path('reviews/', ReviewListCreateView.as_view(), name='review-list'),
 ]
+
+router = DefaultRouter()
+router.register('seller/my-items', SellerProductViewSet, basename='seller-products')
+urlpatterns += router.urls

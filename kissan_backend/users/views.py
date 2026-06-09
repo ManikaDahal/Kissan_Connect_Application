@@ -6,8 +6,8 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .models import User, EmailOTP
-from .serializers import UserSerializer, RegisterSerializer, ChangePasswordSerializer
+from .models import User, EmailOTP, SellerProfile
+from .serializers import UserSerializer, RegisterSerializer, ChangePasswordSerializer, SellerProfileSerializer
 from django.core.mail import send_mail
 from django.conf import settings
 
@@ -328,3 +328,35 @@ class AddressViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class SellerApplyView(views.APIView):
+    """Submit or update seller registration details."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = SellerProfileSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'message': 'Seller application submitted. Waiting for admin approval.',
+                'profile': serializer.data
+            }, status=201)
+        return Response(serializer.errors, status=400)
+
+
+class SellerStatusView(views.APIView):
+    """Check status of seller application."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        profile = getattr(request.user, 'seller_profile', None)
+        if not profile:
+            return Response({'status': 'not_applied', 'message': 'You have not applied for a seller account.'})
+        
+        return Response({
+            'status': profile.status,
+            'is_seller_verified': request.user.is_seller_verified,
+            'shop_name': profile.shop_name,
+            'message': f'Your application is currently {profile.status}.'
+        })

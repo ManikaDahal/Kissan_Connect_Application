@@ -5,6 +5,7 @@ from .views import (
     LoginView, LogoutView,
     ForgotPasswordView, VerifyResetOTPView, ResetPasswordView,
     ChangePasswordView, ProfileView, BiometricTokenRefreshView,
+    SellerApplyView, SellerStatusView,
 )
 
 urlpatterns = [
@@ -24,6 +25,10 @@ urlpatterns = [
 
     path('password/change/',  ChangePasswordView.as_view(), name='change-password'),
     path('profile/',          ProfileView.as_view(),         name='profile'),
+    
+    # Seller Onboarding
+    path('seller/apply/',     SellerApplyView.as_view(),     name='seller-apply'),
+    path('seller/status/',    SellerStatusView.as_view(),    name='seller-status'),
 ]
 
 from rest_framework.routers import DefaultRouter
