@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kissan_connect/core/utils/color_utils.dart';
 import 'package:kissan_connect/core/utils/route_generator.dart';
 import 'package:kissan_connect/core/utils/string_utils.dart';
@@ -25,6 +26,33 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  bool _rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberedEmail();
+  }
+
+  Future<void> _loadRememberedEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rememberedEmail = prefs.getString('remembered_email');
+    if (rememberedEmail != null && rememberedEmail.isNotEmpty) {
+      setState(() {
+        _emailController.text = rememberedEmail;
+        _rememberMe = true;
+      });
+    }
+  }
+
+  Future<void> _saveRememberMe() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_rememberMe) {
+      await prefs.setString('remembered_email', _emailController.text.trim());
+    } else {
+      await prefs.remove('remembered_email');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -133,18 +161,35 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         return null;
                       },
                     ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          RouteGenerator.navigateToPage(context, "/forgotPassword");
-                        },
-                        child: CustomText(
-                          data: forgotPasswordStr,
-                          color: primaryColor,
-                          fontWeight: FontWeight.w600,
+                    Row(
+                      children: [
+                        SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: Checkbox(
+                            value: _rememberMe,
+                            activeColor: primaryColor,
+                            onChanged: (value) {
+                              setState(() {
+                                _rememberMe = value ?? false;
+                              });
+                            },
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        const Text("Remember Me"),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () {
+                            RouteGenerator.navigateToPage(context, "/forgotPassword");
+                          },
+                          child: CustomText(
+                            data: forgotPasswordStr,
+                            color: primaryColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 30),
                     CustomElevatedbutton(
@@ -156,6 +201,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   _emailController.text.trim(),
                                   _passwordController.text.trim(),
                                 );
+                            await _saveRememberMe();
                             await ref.read(cartProvider.notifier).fetchCart();
                             ref.read(navProvider.notifier).state = 0;
                             if (mounted) {
