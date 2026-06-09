@@ -40,7 +40,24 @@ class ProductCard extends ConsumerWidget {
                     width: double.infinity,
                     color: Colors.grey[100],
                     child: product['image'] != null && product['image'].toString().isNotEmpty
-                        ? Image.network(product['image'], fit: BoxFit.cover)
+                        ? Image.network(
+                            product['image'], 
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                      : null,
+                                  strokeWidth: 2,
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) => const Center(
+                              child: Icon(Icons.broken_image_outlined, color: Colors.grey, size: 30),
+                            ),
+                          )
                         : const Icon(Icons.shopping_bag, size: 40, color: Colors.grey),
                   ),
                   Positioned(
