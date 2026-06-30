@@ -48,6 +48,7 @@ class OrderItemModel {
   final String productName;
   final int quantity;
   final double price;
+  final String status;
 
   OrderItemModel({
     required this.id,
@@ -55,6 +56,7 @@ class OrderItemModel {
     required this.productName,
     required this.quantity,
     required this.price,
+    this.status = 'pending',
   });
 
   factory OrderItemModel.fromJson(Map<String, dynamic> json) {
@@ -64,6 +66,7 @@ class OrderItemModel {
       productName: json['product_name'],
       quantity: json['quantity'],
       price: double.parse(json['price'].toString()),
+      status: json['status'] ?? 'pending',
     );
   }
 }
