@@ -3,6 +3,7 @@ import 'package:kissan_connect/services/api_service.dart';
 import 'package:kissan_connect/widgets/custom_app_bar.dart';
 import 'add_product_screen.dart';
 import 'seller_orders_screen.dart';
+import 'seller_earnings_screen.dart';
 
 class SellerDashboardScreen extends StatefulWidget {
   const SellerDashboardScreen({super.key});
@@ -14,11 +15,15 @@ class SellerDashboardScreen extends StatefulWidget {
 class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
   bool _isLoading = true;
   List<dynamic> _myProducts = [];
+  double _totalBalance = 0.0;
+  double _pendingClearance = 0.0;
+  double _totalEarned = 0.0;
 
   @override
   void initState() {
     super.initState();
     _fetchMyProducts();
+    _fetchEarningsSummary();
   }
 
   Future<void> _fetchMyProducts() async {
@@ -38,6 +43,20 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
         );
       }
     }
+  }
+
+  Future<void> _fetchEarningsSummary() async {
+    try {
+      final response = await ApiService.get('seller-orders/earnings/');
+      if (mounted) {
+        setState(() {
+          _totalEarned = (response['total_earned'] as num).toDouble();
+          _pendingClearance = (response['pending_clearance'] as num).toDouble();
+          final released = (response['released_waiting'] as num).toDouble();
+          _totalBalance = _pendingClearance + released;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _updateStock(int productId, int currentStock) async {
@@ -155,16 +174,81 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
   }
 
   Widget _buildStatCards() {
-    return GridView.count(
-      shrinkWrap: true,
-      crossAxisCount: 2,
-      childAspectRatio: 1.5,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      physics: const NeverScrollableScrollPhysics(),
+    return Column(
       children: [
-        _statCard("Active Products", _myProducts.length.toString(), Icons.inventory_2, Colors.blue),
-        _statCard("Total Stock", _myProducts.fold<int>(0, (sum, p) => sum + ((p['stock'] ?? 0) as int)).toString(), Icons.warehouse_outlined, Colors.orange),
+        // Earnings preview banner — tap to open full screen
+        GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const SellerEarningsScreen()),
+          ).then((_) => _fetchEarningsSummary()),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1B5E20), Color(0xFF388E3C)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2E7D32).withOpacity(0.35),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.account_balance_wallet, color: Colors.white70),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Your Balance', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                      Text(
+                        'Rs. ${_totalBalance.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Total earned: Rs. ${_totalEarned.toStringAsFixed(2)}',
+                        style: const TextStyle(color: Colors.white60, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('View Details', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    Icon(Icons.chevron_right, color: Colors.white70),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Existing product stats
+        GridView.count(
+          shrinkWrap: true,
+          crossAxisCount: 2,
+          childAspectRatio: 1.5,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          physics: const NeverScrollableScrollPhysics(),
+          children: [
+            _statCard("Active Products", _myProducts.length.toString(), Icons.inventory_2, Colors.blue),
+            _statCard("Total Stock", _myProducts.fold<int>(0, (sum, p) => sum + ((p['stock'] ?? 0) as int)).toString(), Icons.warehouse_outlined, Colors.orange),
+          ],
+        ),
       ],
     );
   }

@@ -317,3 +317,40 @@ def update_item_status(request, item_id):
         ).update(status='released')
 
     return Response({'success': True, 'item_id': item.id, 'new_status': item.status})
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def seller_earnings(request):
+    """
+    Returns the earnings summary and transaction history for the logged-in seller.
+    """
+    from .models import Transaction
+    from django.db.models import Sum
+
+    transactions = Transaction.objects.filter(seller=request.user)
+
+    # Calculate summaries
+    total_earned = transactions.filter(status='paid_out').aggregate(Sum('net_payout'))['net_payout__sum'] or Decimal('0.00')
+    pending_clearance = transactions.filter(status='held').aggregate(Sum('net_payout'))['net_payout__sum'] or Decimal('0.00')
+    released_waiting = transactions.filter(status='released').aggregate(Sum('net_payout'))['net_payout__sum'] or Decimal('0.00')
+
+    response_data = {
+        'total_earned': float(total_earned),
+        'pending_clearance': float(pending_clearance),
+        'released_waiting': float(released_waiting),
+        'transactions': [
+            {
+                'id': tx.id,
+                'order_id': tx.order.id,
+                'gross_amount': float(tx.gross_amount),
+                'commission_amount': float(tx.commission_amount),
+                'net_payout': float(tx.net_payout),
+                'status': tx.status,
+                'created_at': tx.created_at.isoformat(),
+            }
+            for tx in transactions.order_by('-created_at')
+        ]
+    }
+    return Response(response_data)
+
