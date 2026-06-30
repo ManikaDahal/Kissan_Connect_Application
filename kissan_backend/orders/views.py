@@ -6,12 +6,15 @@ from rest_framework import viewsets, permissions, status, views
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from .models import Order, OrderItem
+from .models import Order, OrderItem, Transaction
 from .serializers import OrderSerializer
 from products.models import Product
 from users.models import UserAddress
 
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+
+
+COMMISSION_RATE = 0.05  # 5% platform commission
 
 
 def _deduct_stock(order):
@@ -20,6 +23,34 @@ def _deduct_stock(order):
         if item.product:
             item.product.stock = max(0, item.product.stock - item.quantity)
             item.product.save()
+
+
+def _create_seller_transactions(order):
+    """Creates Transaction records for each seller involved in this order.
+    Groups items by seller, calculates 5% commission, and records a 'held' payout."""
+    # Group items by seller
+    seller_totals = {}
+    for item in order.items.select_related('product__seller').all():
+        if not item.product or not item.product.seller:
+            continue
+        seller = item.product.seller
+        gross = item.price * item.quantity
+        seller_totals[seller] = seller_totals.get(seller, 0) + gross
+
+    # Create one Transaction record per seller
+    for seller, gross_amount in seller_totals.items():
+        commission = round(gross_amount * COMMISSION_RATE, 2)
+        net_payout = round(gross_amount - commission, 2)
+        Transaction.objects.get_or_create(
+            order=order,
+            seller=seller,
+            defaults={
+                'gross_amount': gross_amount,
+                'commission_amount': commission,
+                'net_payout': net_payout,
+                'status': 'held',
+            }
+        )
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -156,8 +187,8 @@ class OrderViewSet(viewsets.ModelViewSet):
                     order.status = 'paid'
                     order.transaction_id = pidx
                     order.save()
-                    #  Deduct stock after successful Khalti payment
                     _deduct_stock(order)
+                    _create_seller_transactions(order)
                 return Response({'status': 'success', 'message': 'Payment successful'})
             else:
                 return Response({'status': 'failed', 'message': data.get('status', 'Unknown error')}, status=400)
@@ -189,8 +220,8 @@ def stripe_webhook(request):
                     order.status = 'paid'
                     order.transaction_id = intent['id']
                     order.save()
-                    # ✅ Deduct stock after successful Stripe payment
                     _deduct_stock(order)
+                    _create_seller_transactions(order)
             except Order.DoesNotExist:
                 pass
     elif event['type'] in ['payment_intent.payment_failed', 'payment_intent.canceled']:
@@ -243,11 +274,45 @@ def seller_orders(request):
             }
         # Only add items that belong to this seller
         orders_dict[order.id]['my_items'].append({
+            'item_id': item.id,
             'product_name': item.product.name if item.product else 'Deleted Product',
             'quantity': item.quantity,
             'price': str(item.price),
+            'item_status': item.status,
         })
 
     orders_list = sorted(orders_dict.values(), key=lambda x: x['created_at'], reverse=True)
     return Response(orders_list)
 
+
+@api_view(['PATCH'])
+@permission_classes([permissions.IsAuthenticated])
+def update_item_status(request, item_id):
+    """Allows a seller to update the delivery status of their own OrderItem.
+    When marked 'delivered', automatically releases the associated Transaction funds."""
+    try:
+        item = OrderItem.objects.select_related('product__seller', 'order').get(id=item_id)
+    except OrderItem.DoesNotExist:
+        return Response({'error': 'Item not found'}, status=404)
+
+    # Security: only the seller who owns the product can update its status
+    if not item.product or item.product.seller != request.user:
+        return Response({'error': 'Permission denied'}, status=403)
+
+    new_status = request.data.get('status')
+    valid = [choice[0] for choice in OrderItem.STATUS_CHOICES]
+    if new_status not in valid:
+        return Response({'error': f'Invalid status. Choose from: {valid}'}, status=400)
+
+    item.status = new_status
+    item.save()
+
+    # When seller marks item delivered, release the held transaction funds
+    if new_status == 'delivered':
+        Transaction.objects.filter(
+            order=item.order,
+            seller=request.user,
+            status='held'
+        ).update(status='released')
+
+    return Response({'success': True, 'item_id': item.id, 'new_status': item.status})

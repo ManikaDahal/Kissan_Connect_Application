@@ -15,7 +15,6 @@ class Order(models.Model):
     GATEWAY_CHOICES = (
         ('khalti', 'Khalti'),
         ('stripe', 'Stripe'),
-        ('cod', 'Cash on Delivery'),
     )
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='orders')
@@ -31,10 +30,17 @@ class Order(models.Model):
         return f"Order #{self.id} - {self.user.email}"
 
 class OrderItem(models.Model):
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('shipped', 'Shipped'),
+        ('delivered', 'Delivered'),
+        ('cancelled', 'Cancelled'),
+    )
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name if self.product else 'Deleted Product'}"
@@ -44,6 +50,7 @@ class Transaction(models.Model):
     TRANSACTION_STATUS = (
         ('held', 'Held'),
         ('released', 'Released'),
+        ('paid_out', 'Paid Out'),
         ('refunded', 'Refunded'),
     )
 
