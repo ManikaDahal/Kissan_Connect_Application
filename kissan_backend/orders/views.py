@@ -72,6 +72,9 @@ class OrderViewSet(viewsets.ModelViewSet):
                 'clientSecret': intent['client_secret']
             })
         except Exception as e:
+            # Mark order as failed so it doesn't stay as ghost "pending"
+            order.status = 'failed'
+            order.save()
             return Response({'error': str(e)}, status=400)
 
     @action(detail=True, methods=['post'], url_path='initiate-khalti-payment')
@@ -96,9 +99,24 @@ class OrderViewSet(viewsets.ModelViewSet):
         
         try:
             response = requests.post(url, json=payload, headers=headers)
+            if response.status_code != 200:
+                # Mark order as failed if Khalti rejects the request
+                order.status = 'failed'
+                order.save()
             return Response(response.json(), status=response.status_code)
         except Exception as e:
+            order.status = 'failed'
+            order.save()
             return Response({'error': str(e)}, status=400)
+
+    @action(detail=True, methods=['post'], url_path='cancel')
+    def cancel_order(self, request, pk=None):
+        """Called by the Flutter app when a user cancels or payment fails on their end."""
+        order = self.get_object()
+        if order.status == 'pending':
+            order.status = 'failed'
+            order.save()
+        return Response({'status': order.status})
 
     @action(detail=True, methods=['post'], url_path='verify-khalti-payment')
     def verify_khalti(self, request, pk=None):
@@ -149,6 +167,17 @@ def stripe_webhook(request):
                 order.status = 'paid'
                 order.transaction_id = intent['id']
                 order.save()
+            except Order.DoesNotExist:
+                pass
+    elif event['type'] in ['payment_intent.payment_failed', 'payment_intent.canceled']:
+        intent = event['data']['object']
+        order_id = intent['metadata'].get('order_id')
+        if order_id:
+            try:
+                order = Order.objects.get(id=order_id)
+                if order.status == 'pending':
+                    order.status = 'failed'
+                    order.save()
             except Order.DoesNotExist:
                 pass
 
