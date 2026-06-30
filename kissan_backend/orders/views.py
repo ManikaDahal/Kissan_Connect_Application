@@ -13,6 +13,15 @@ from users.models import UserAddress
 
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
 
+
+def _deduct_stock(order):
+    """Deducts stock for each item in the order after successful payment."""
+    for item in order.items.select_related('product').all():
+        if item.product:
+            item.product.stock = max(0, item.product.stock - item.quantity)
+            item.product.save()
+
+
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -32,6 +41,14 @@ class OrderViewSet(viewsets.ModelViewSet):
             try:
                 product = Product.objects.get(id=item['product'])
                 qty = item['quantity']
+
+                #  Stock validation — reject order if not enough stock
+                if product.stock < qty:
+                    return Response(
+                        {'error': f"Not enough stock for '{product.name}'. Only {product.stock} left."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
                 price = product.price
                 total_amount += (price * qty)
                 order_items.append(
@@ -49,7 +66,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             total_amount=total_amount,
             status='pending',
             payment_gateway=request.data.get('payment_gateway', 'cod'),
-            shipping_address = UserAddress.objects.filter(id=request.data.get('shipping_address_id')).first() if request.data.get('shipping_address_id') else None
+            shipping_address=UserAddress.objects.filter(id=request.data.get('shipping_address_id')).first() if request.data.get('shipping_address_id') else None
         )
 
         for item in order_items:
@@ -64,7 +81,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         order = self.get_object()
         try:
             intent = stripe.PaymentIntent.create(
-                amount=int(order.total_amount * 100), # Amount in cents
+                amount=int(order.total_amount * 100),  # Amount in cents
                 currency='npr',
                 metadata={'order_id': order.id}
             )
@@ -81,22 +98,22 @@ class OrderViewSet(viewsets.ModelViewSet):
     def initiate_khalti(self, request, pk=None):
         order = self.get_object()
         url = "https://a.khalti.com/api/v2/epayment/initiate/"
-        
+
         return_url = request.data.get('return_url', 'kissanconnect://payment-success')
-        
+
         payload = {
             "return_url": return_url,
             "website_url": "https://kissanconnect.com",
-            "amount": int(order.total_amount * 100), # Paisa
+            "amount": int(order.total_amount * 100),  # Paisa
             "purchase_order_id": str(order.id),
             "purchase_order_name": f"Order #{order.id}",
         }
-        
+
         headers = {
             'Authorization': f'Key {os.environ.get("KHALTI_SECRET_KEY")}',
             'Content-Type': 'application/json',
         }
-        
+
         try:
             response = requests.post(url, json=payload, headers=headers)
             if response.status_code != 200:
@@ -122,27 +139,31 @@ class OrderViewSet(viewsets.ModelViewSet):
     def verify_khalti(self, request, pk=None):
         order = self.get_object()
         pidx = request.data.get('pidx')
-        
+
         url = "https://a.khalti.com/api/v2/epayment/lookup/"
         payload = {"pidx": pidx}
         headers = {
             'Authorization': f'Key {os.environ.get("KHALTI_SECRET_KEY")}',
             'Content-Type': 'application/json',
         }
-        
+
         try:
             response = requests.post(url, json=payload, headers=headers)
             data = response.json()
-            
+
             if data.get('status') == 'Completed':
-                order.status = 'paid'
-                order.transaction_id = pidx
-                order.save()
+                if order.status != 'paid':  # Prevent double deduction
+                    order.status = 'paid'
+                    order.transaction_id = pidx
+                    order.save()
+                    #  Deduct stock after successful Khalti payment
+                    _deduct_stock(order)
                 return Response({'status': 'success', 'message': 'Payment successful'})
             else:
                 return Response({'status': 'failed', 'message': data.get('status', 'Unknown error')}, status=400)
         except Exception as e:
             return Response({'error': str(e)}, status=400)
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -164,9 +185,12 @@ def stripe_webhook(request):
         if order_id:
             try:
                 order = Order.objects.get(id=order_id)
-                order.status = 'paid'
-                order.transaction_id = intent['id']
-                order.save()
+                if order.status != 'paid':  # Prevent double deduction
+                    order.status = 'paid'
+                    order.transaction_id = intent['id']
+                    order.save()
+                    # ✅ Deduct stock after successful Stripe payment
+                    _deduct_stock(order)
             except Order.DoesNotExist:
                 pass
     elif event['type'] in ['payment_intent.payment_failed', 'payment_intent.canceled']:
