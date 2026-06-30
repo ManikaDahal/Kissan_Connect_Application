@@ -56,169 +56,174 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Stack(
-              children: [
-                Container(
-                  height: MediaQuery.of(context).size.height * 0.35,
-                  decoration: const BoxDecoration(
-                    color: primaryColor,
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(40),
-                      bottomRight: Radius.circular(40),
-                    ),
-                  ),
-                ),
-                SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 16),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black12,
-                                    blurRadius: 10,
-                                    offset: Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Image.asset(
-                                "assets/images/splashScreen.png",
-                                width: 64,
-                                height: 64,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: CustomText(
-                                data: welcomeBackStr,
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: whiteColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        CustomText(
-                          data: "Sign in to continue your journey",
-                          fontSize: 16,
-                          color: whiteColor.withOpacity(0.8),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    CustomTextformfield(
-                      controller: _emailController,
-                      hintText: emailAddressStr,
-                      keyboardType: TextInputType.emailAddress,
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) return validateEmailAddressStr;
-                        if (!value.contains('@')) return "Please enter a valid email";
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    CustomTextformfield(
-                      controller: _passwordController,
-                      hintText: passwordStr,
-                      obscureText: !_isPasswordVisible,
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
-                        icon: Icon(
-                          _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                          color: primaryColor,
-                        ),
+    return GestureDetector(
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: Scaffold(
+        backgroundColor: backgroundColor,
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              Stack(
+                children: [
+                  Container(
+                    height: MediaQuery.of(context).size.height * 0.35,
+                    decoration: const BoxDecoration(
+                      color: primaryColor,
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(40),
+                        bottomRight: Radius.circular(40),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) return validatePasswordStr;
-                        return null;
-                      },
                     ),
-                    Row(
-                      children: [
-                        SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: Checkbox(
-                            value: _rememberMe,
-                            activeColor: primaryColor,
-                            onChanged: (value) {
-                              setState(() {
-                                _rememberMe = value ?? false;
-                              });
-                            },
+                  ),
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 16),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black12,
+                                      blurRadius: 10,
+                                      offset: Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Image.asset(
+                                  "assets/images/splashScreen.png",
+                                  width: 64,
+                                  height: 64,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: CustomText(
+                                  data: welcomeBackStr,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: whiteColor,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text("Remember Me"),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: () {
-                            RouteGenerator.navigateToPage(context, "/forgotPassword");
-                          },
-                          child: CustomText(
-                            data: forgotPasswordStr,
+                          const SizedBox(height: 8),
+                          CustomText(
+                            data: "Sign in to continue your journey",
+                            fontSize: 16,
+                            color: whiteColor.withOpacity(0.8),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+                      CustomTextformfield(
+                        controller: _emailController,
+                        hintText: emailAddressStr,
+                        keyboardType: TextInputType.emailAddress,
+                        prefixIcon: const Icon(Icons.email_outlined),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return validateEmailAddressStr;
+                          if (!value.contains('@')) return "Please enter a valid email";
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      CustomTextformfield(
+                        controller: _passwordController,
+                        hintText: passwordStr,
+                        obscureText: !_isPasswordVisible,
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                          icon: Icon(
+                            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
                             color: primaryColor,
-                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 30),
-                    CustomElevatedbutton(
-                      onPressed: _isLoading ? () {} : () async {
-                        if (_formKey.currentState!.validate()) {
-                          setState(() => _isLoading = true);
-                          try {
-                            await ref.read(authRepositoryProvider).login(
-                                  _emailController.text.trim(),
-                                  _passwordController.text.trim(),
-                                );
-                            await _saveRememberMe();
-                            await ref.read(cartProvider.notifier).fetchCart();
-                            ref.read(navProvider.notifier).state = 0;
-                            if (mounted) {
-                              RouteGenerator.navigateToPageWithoutStack(
-                                  context, "/bottomNavbar");
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              ErrorHelper.showSnackBarError(context, e);
-                            }
-                          } finally {
-                            if (mounted) {
-                              setState(() => _isLoading = false);
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return validatePasswordStr;
+                          return null;
+                        },
+                      ),
+                      Row(
+                        children: [
+                          SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: Checkbox(
+                              value: _rememberMe,
+                              activeColor: primaryColor,
+                              onChanged: (value) {
+                                setState(() {
+                                  _rememberMe = value ?? false;
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text("Remember Me"),
+                          const Spacer(),
+                          TextButton(
+                            onPressed: () {
+                              RouteGenerator.navigateToPage(context, "/forgotPassword");
+                            },
+                            child: CustomText(
+                              data: forgotPasswordStr,
+                              color: primaryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 30),
+                      CustomElevatedbutton(
+                        onPressed: _isLoading ? () {} : () async {
+                          // Force keyboard down instantly on submit click
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          
+                          if (_formKey.currentState!.validate()) {
+                            setState(() => _isLoading = true);
+                            try {
+                              await ref.read(authRepositoryProvider).login(
+                                    _emailController.text.trim(),
+                                    _passwordController.text.trim(),
+                                  );
+                              await _saveRememberMe();
+                              await ref.read(cartProvider.notifier).fetchCart();
+                              ref.read(navProvider.notifier).state = 0;
+                              if (mounted) {
+                                RouteGenerator.navigateToPageWithoutStack(
+                                    context, "/bottomNavbar");
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ErrorHelper.showSnackBarError(context, e);
+                              }
+                            } finally {
+                              if (mounted) {
+                                setState(() => _isLoading = false);
+                              }
                             }
                           }
-                        }
-                      },
+                        },
                       child: _isLoading 
                           ? const SizedBox(
                               height: 24,
@@ -273,6 +278,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ],
         ),
       ),
-    );
+    ));
   }
 }
+

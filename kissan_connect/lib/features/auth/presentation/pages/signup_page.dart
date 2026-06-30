@@ -29,17 +29,19 @@ class _SignupPageState extends ConsumerState<SignupPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: foregroundColor),
-          onPressed: () => Navigator.pop(context),
+    return GestureDetector(
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: Scaffold(
+        backgroundColor: backgroundColor,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: foregroundColor),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
-      ),
-      body: SingleChildScrollView(
+        body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Form(
@@ -127,6 +129,9 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                 const SizedBox(height: 40),
                 CustomElevatedbutton(
                   onPressed: _isLoading ? () {} : () async {
+                    // Force keyboard down instantly on submit click
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    
                     if (_formKey.currentState!.validate() && _isAgreedToTerms) {
                       setState(() => _isLoading = true);
                       try {
@@ -209,6 +214,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
           ),
         ),
       ),
-    );
+    ));
   }
 }
+
