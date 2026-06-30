@@ -206,3 +206,48 @@ def stripe_webhook(request):
                 pass
 
     return Response({'status': 'success'})
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def seller_orders(request):
+    """Returns all orders that contain products belonging to the logged-in seller."""
+    from .models import OrderItem
+
+    # Find all order items where the product belongs to this seller
+    seller_items = OrderItem.objects.filter(
+        product__seller=request.user
+    ).select_related('order', 'order__user', 'order__shipping_address', 'product')
+
+    # Group by order to avoid duplicates
+    orders_dict = {}
+    for item in seller_items:
+        order = item.order
+        if order.id not in orders_dict:
+            orders_dict[order.id] = {
+                'id': order.id,
+                'buyer_email': order.user.email,
+                'buyer_name': order.user.full_name,
+                'status': order.status,
+                'payment_gateway': order.payment_gateway,
+                'total_amount': str(order.total_amount),
+                'created_at': order.created_at.isoformat(),
+                'shipping_address': {
+                    'full_name': order.shipping_address.full_name if order.shipping_address else 'N/A',
+                    'city': order.shipping_address.city if order.shipping_address else 'N/A',
+                    'area': order.shipping_address.area if order.shipping_address else 'N/A',
+                    'province': order.shipping_address.province if order.shipping_address else 'N/A',
+                    'phone_number': order.shipping_address.phone_number if order.shipping_address else 'N/A',
+                } if order.shipping_address else None,
+                'my_items': [],
+            }
+        # Only add items that belong to this seller
+        orders_dict[order.id]['my_items'].append({
+            'product_name': item.product.name if item.product else 'Deleted Product',
+            'quantity': item.quantity,
+            'price': str(item.price),
+        })
+
+    orders_list = sorted(orders_dict.values(), key=lambda x: x['created_at'], reverse=True)
+    return Response(orders_list)
+

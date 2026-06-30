@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kissan_connect/services/api_service.dart';
 import 'package:kissan_connect/widgets/custom_app_bar.dart';
 import 'add_product_screen.dart';
+import 'seller_orders_screen.dart';
 
 class SellerDashboardScreen extends StatefulWidget {
   const SellerDashboardScreen({super.key});
@@ -89,6 +90,28 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildStatCards(),
+                  const SizedBox(height: 16),
+                  // View Customer Orders Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SellerOrdersScreen()),
+                      ),
+                      icon: const Icon(Icons.receipt_long_outlined, color: Color(0xFF2E7D32)),
+                      label: const Text(
+                        'View Customer Orders',
+                        style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: Color(0xFF2E7D32), width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -141,7 +164,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
       physics: const NeverScrollableScrollPhysics(),
       children: [
         _statCard("Active Products", _myProducts.length.toString(), Icons.inventory_2, Colors.blue),
-        _statCard("Total Sales", "Rs. 0", Icons.payments_outlined, Colors.orange),
+        _statCard("Total Stock", _myProducts.fold<int>(0, (sum, p) => sum + ((p['stock'] ?? 0) as int)).toString(), Icons.warehouse_outlined, Colors.orange),
       ],
     );
   }
