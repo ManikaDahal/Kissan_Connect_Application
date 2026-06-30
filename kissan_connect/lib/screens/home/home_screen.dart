@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kissan_connect/core/providers/nav_provider.dart';
 import 'package:kissan_connect/widgets/product_card.dart';
 import '../../theme/app_theme.dart';
@@ -30,7 +32,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchData();
+    _loadCachedData();
+    _fetchData(isSilent: true);
   }
 
   @override
@@ -40,10 +43,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.dispose();
   }
 
-  Future<void> _fetchData({bool isSearch = false, bool isRefresh = false}) async {
+  Future<void> _loadCachedData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedCats = prefs.getString('cache_categories');
+      final cachedFam = prefs.getString('cache_famous_products');
+      final cachedAll = prefs.getString('cache_all_products');
+
+      if (mounted) {
+        setState(() {
+          if (cachedCats != null) _categories = jsonDecode(cachedCats);
+          if (cachedFam != null) _famousProducts = jsonDecode(cachedFam);
+          if (cachedAll != null) _allProducts = jsonDecode(cachedAll);
+          
+          // If we have cached products, we can hide the full-screen loader immediately
+          if (_allProducts.isNotEmpty) {
+            _isLoading = false;
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading cache: $e");
+    }
+  }
+
+  Future<void> _saveDataToCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cache_categories', jsonEncode(_categories));
+      await prefs.setString('cache_famous_products', jsonEncode(_famousProducts));
+      await prefs.setString('cache_all_products', jsonEncode(_allProducts));
+    } catch (e) {
+      debugPrint("Error saving cache: $e");
+    }
+  }
+
+  Future<void> _fetchData({bool isSearch = false, bool isRefresh = false, bool isSilent = false}) async {
     if (isSearch) {
       setState(() => _isSearchLoading = true);
-    } else if (!isRefresh) {
+    } else if (!isRefresh && !isSilent && _allProducts.isEmpty) {
       setState(() => _isLoading = true);
     }
     
@@ -95,9 +133,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 : categoriesData;
           }
           
-          _allProducts = (productsData is Map && productsData.containsKey('results')) 
-              ? productsData['results'] 
-              : productsData;
+          if (productsData != null) {
+            _allProducts = (productsData is Map && productsData.containsKey('results')) 
+                ? productsData['results'] 
+                : productsData;
+          }
           
           if (famousData != null) {
             _famousProducts = (famousData is Map && famousData.containsKey('results')) 
@@ -108,6 +148,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           _isLoading = false;
           _isSearchLoading = false;
         });
+
+        // Trigger cache save in the background
+        _saveDataToCache();
       }
     } catch (e) {
       debugPrint("Error fetching data: $e");
