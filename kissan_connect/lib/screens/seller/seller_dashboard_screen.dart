@@ -76,7 +76,9 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(title: "Seller Hub"),
+      appBar: const CustomAppBar(
+      
+        title: "Seller Hub"),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator())
         : RefreshIndicator(

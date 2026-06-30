@@ -24,7 +24,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     try {
       final response = await ApiService.get('orders/');
       List<dynamic> listContent = [];
-      
+
       if (response is List) {
         listContent = response;
       } else if (response is Map && response.containsKey('results')) {
@@ -37,9 +37,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
       setState(() => isLoading = false);
     }
@@ -49,6 +49,10 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text("My Orders"),
         elevation: 0,
         backgroundColor: Colors.white,
@@ -57,15 +61,15 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : orders.isEmpty
-              ? _buildEmptyState()
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: orders.length,
-                  itemBuilder: (context, index) {
-                    final order = orders[index];
-                    return _buildOrderCard(order);
-                  },
-                ),
+          ? _buildEmptyState()
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: orders.length,
+              itemBuilder: (context, index) {
+                final order = orders[index];
+                return _buildOrderCard(order);
+              },
+            ),
     );
   }
 
@@ -84,7 +88,10 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text("Start Shopping", style: TextStyle(color: Colors.white)),
+            child: const Text(
+              "Start Shopping",
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -93,7 +100,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
 
   Widget _buildOrderCard(OrderModel order) {
     final dateStr = DateFormat('MMM d, yyyy').format(order.createdAt);
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -124,16 +131,20 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 8),
-          ...order.items.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 4.0),
-                child: Row(
-                  children: [
-                    Text("${item.quantity}x ${item.productName}"),
-                    const Spacer(),
-                    Text("Rs. ${(item.price * item.quantity).toStringAsFixed(2)}"),
-                  ],
-                ),
-              )),
+          ...order.items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 4.0),
+              child: Row(
+                children: [
+                  Text("${item.quantity}x ${item.productName}"),
+                  const Spacer(),
+                  Text(
+                    "Rs. ${(item.price * item.quantity).toStringAsFixed(2)}",
+                  ),
+                ],
+              ),
+            ),
+          ),
           const Divider(height: 24),
           if (order.shippingAddress != null) ...[
             const Text(
@@ -186,7 +197,11 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       ),
       child: Text(
         status.toUpperCase(),
-        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

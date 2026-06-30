@@ -64,6 +64,10 @@ class _AddressBookScreenState extends State<AddressBookScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text(
           "My Addresses",
           style: TextStyle(fontWeight: FontWeight.bold),

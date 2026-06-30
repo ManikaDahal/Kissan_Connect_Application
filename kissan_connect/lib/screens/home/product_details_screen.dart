@@ -129,7 +129,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
                 backgroundColor: const Color(0xFFE8F5E9),
                 elevation: 0,
                 leading: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                  icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
                   onPressed: () => Navigator.pop(context),
                 ),
                 actions: [
