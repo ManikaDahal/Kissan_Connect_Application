@@ -323,6 +323,8 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
                     Text(
                       'Rs. ${order['total_amount']}',
                       style: const TextStyle(
+
+                        
                           fontSize: 16, fontWeight: FontWeight.bold,
                           color: Color(0xFF2E7D32)),
                     ),

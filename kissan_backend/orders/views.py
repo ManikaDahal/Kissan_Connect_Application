@@ -1,6 +1,7 @@
 import stripe
 import os
 import requests
+from decimal import Decimal
 from django.conf import settings
 from rest_framework import viewsets, permissions, status, views
 from rest_framework.decorators import action, api_view, permission_classes
@@ -14,7 +15,7 @@ from users.models import UserAddress
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
 
 
-COMMISSION_RATE = 0.05  # 5% platform commission
+COMMISSION_RATE = Decimal('0.05')  # 5% platform commission
 
 
 def _deduct_stock(order):
