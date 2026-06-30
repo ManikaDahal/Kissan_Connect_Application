@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .models import User, EmailOTP, SellerProfile
+from .models import User, EmailOTP, SellerProfile, SupportTicket
 from .serializers import UserSerializer, RegisterSerializer, ChangePasswordSerializer, SellerProfileSerializer
 from django.core.mail import send_mail
 from django.conf import settings
@@ -370,3 +370,23 @@ class SellerStatusView(views.APIView):
             'shop_name': profile.shop_name,
             'message': f'Your application is currently {profile.status}.'
         })
+
+
+class SupportTicketView(views.APIView):
+    """Submit a help/support ticket message to the database."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        message = request.data.get('message', '').strip()
+        if not message:
+            return Response({'error': 'Message details are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        ticket = SupportTicket.objects.create(
+            user=request.user,
+            message=message
+        )
+        return Response({
+            'message': 'Ticket submitted successfully.',
+            'ticket_id': ticket.id
+        }, status=status.HTTP_201_CREATED)
+

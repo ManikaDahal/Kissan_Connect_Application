@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, EmailOTP, SellerProfile
+from .models import User, EmailOTP, SellerProfile, SupportTicket
 from unfold.admin import ModelAdmin
 
 @admin.register(User)
@@ -45,3 +45,14 @@ class SellerProfileAdmin(ModelAdmin):
             'fields': ('payout_gateway', 'payout_id')
         }),
     )
+
+@admin.register(SupportTicket)
+class SupportTicketAdmin(ModelAdmin):
+    list_display = ('id', 'user', 'short_message', 'is_resolved', 'created_at')
+    list_filter = ('is_resolved', 'created_at')
+    search_fields = ('user__email', 'message')
+    list_editable = ('is_resolved',)
+
+    def short_message(self, obj):
+        return obj.message[:50] + '...' if len(obj.message) > 50 else obj.message
+    short_message.short_description = "Message Preview"
