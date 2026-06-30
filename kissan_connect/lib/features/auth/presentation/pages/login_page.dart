@@ -79,47 +79,41 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24.0),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           const SizedBox(height: 16),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black12,
-                                      blurRadius: 10,
-                                      offset: Offset(0, 4),
-                                    ),
-                                  ],
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 20,
+                                  offset: Offset(0, 8),
                                 ),
-                                child: Image.asset(
-                                  "assets/images/splashScreen.png",
-                                  width: 64,
-                                  height: 64,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: CustomText(
-                                  data: welcomeBackStr,
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: whiteColor,
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
+                            child: Image.asset(
+                              "assets/images/splashScreen.png",
+                              width: 100,
+                              height: 100,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          CustomText(
+                            data: welcomeBackStr,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: whiteColor,
                           ),
                           const SizedBox(height: 8),
                           CustomText(
                             data: "Sign in to continue your journey",
                             fontSize: 16,
-                            color: whiteColor.withOpacity(0.8),
+                            color: whiteColor.withOpacity(0.9),
                           ),
                         ],
                       ),
@@ -210,6 +204,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               await ref.read(cartProvider.notifier).fetchCart();
                               ref.read(navProvider.notifier).state = 0;
                               if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Login successfully!"),
+                                    backgroundColor: Colors.green,
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
                                 RouteGenerator.navigateToPageWithoutStack(
                                     context, "/bottomNavbar");
                               }
