@@ -25,12 +25,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
   bool _isLoading = false;
 
   final List<Map<String, String>> _unitTypes = [
-    {'value': 'kg', 'label': 'Kilograms (kg)'},
-    {'value': 'g', 'label': 'Grams (g)'},
-    {'value': 'litre', 'label': 'Litres (L)'},
-    {'value': 'ml', 'label': 'Millilitres (mL)'},
-    {'value': 'piece', 'label': 'Piece / Item'},
-    {'value': 'pack', 'label': 'Pack / Packet'},
+    {'value': 'kg', 'label': 'kg (Kilograms)'},
+    {'value': 'g', 'label': 'g (Grams)'},
+    {'value': 'litre', 'label': 'L (Litre)'},
+    {'value': 'ml', 'label': 'mL (Millilitre)'},
+    {'value': 'piece', 'label': 'Piece'},
+    {'value': 'pack', 'label': 'Pack'},
     {'value': 'bag', 'label': 'Bag'},
     {'value': 'bottle', 'label': 'Bottle'},
     {'value': 'box', 'label': 'Box'},
@@ -253,12 +253,30 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       onChanged: (v) => setState(() => _selectedCategory = v),
                       validator: (v) => v == null ? "Required" : null,
                     ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton.icon(
-                        icon: const Icon(Icons.add, size: 16, color: Colors.green),
-                        label: const Text("Can't find category? Suggest one", style: TextStyle(color: Colors.green, fontSize: 13)),
-                        onPressed: _showSuggestCategoryDialog,
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: _showSuggestCategoryDialog,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.green.shade300, style: BorderStyle.solid),
+                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.green.shade50,
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.add_circle_outline, color: Colors.green, size: 18),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                "Can't find your category? Suggest one to admin",
+                                style: TextStyle(color: Colors.green, fontSize: 13, fontWeight: FontWeight.w500),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -300,39 +318,32 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _weightController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(
-                              labelText: "Net Amount (e.g. 1, 500)",
-                              border: OutlineInputBorder(),
+                    TextFormField(
+                      controller: _weightController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: "Net Amount (e.g. 1, 500)",
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (v) => v!.isEmpty ? "Required" : null,
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: "Unit Type",
+                        border: OutlineInputBorder(),
+                      ),
+                      value: _selectedUnitType,
+                      items: _unitTypes
+                          .map(
+                            (u) => DropdownMenuItem<String>(
+                              value: u['value'],
+                              child: Text(u['label']!),
                             ),
-                            validator: (v) => v!.isEmpty ? "Required" : null,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            decoration: const InputDecoration(
-                              labelText: "Unit",
-                              border: OutlineInputBorder(),
-                            ),
-                            value: _selectedUnitType,
-                            items: _unitTypes
-                                .map(
-                                  (u) => DropdownMenuItem<String>(
-                                    value: u['value'],
-                                    child: Text(u['label']!),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (v) => setState(() => _selectedUnitType = v!),
-                          ),
-                        ),
-                      ],
+                          )
+                          .toList(),
+                      onChanged: (v) => setState(() => _selectedUnitType = v!),
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton(

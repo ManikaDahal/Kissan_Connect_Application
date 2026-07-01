@@ -68,7 +68,11 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                   hintText: nameStr,
                   prefixIcon: const Icon(Icons.person_outline),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return validateNameStr;
+                    if (value == null || value.trim().isEmpty) return validateNameStr;
+                    if (value.trim().length < 2) return "Name must be at least 2 characters";
+                    if (!RegExp(r"^[a-zA-Z\s'\-]+$").hasMatch(value.trim())) {
+                      return "Name can only contain letters, spaces, hyphens or apostrophes";
+                    }
                     return null;
                   },
                 ),
@@ -79,8 +83,13 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                   keyboardType: TextInputType.emailAddress,
                   prefixIcon: const Icon(Icons.email_outlined),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return validateEmailAddressStr;
-                    if (!value.contains('@')) return "Please enter a valid email";
+                    if (value == null || value.trim().isEmpty) return validateEmailAddressStr;
+                    final emailRegex = RegExp(
+                      r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$',
+                    );
+                    if (!emailRegex.hasMatch(value.trim())) {
+                      return "Please enter a valid email (e.g. name@example.com)";
+                    }
                     return null;
                   },
                 ),
@@ -145,6 +154,13 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                         if (mounted) {
                           RouteGenerator.navigateToPageWithoutStack(
                               context, "/bottomNavbar");
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Account created successfully! Welcome to KissanConnect."),
+                              backgroundColor: Colors.green,
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
                         }
                       } catch (e) {
                         if (mounted) {

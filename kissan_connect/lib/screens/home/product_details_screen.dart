@@ -109,56 +109,44 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
   }
 
   String _getQuantityLabel(dynamic product, dynamic stock) {
-    final unitType = product['unit_type'] ?? 'piece';
+    final unitType = product['unit_type'];
+    // Old products have no unit_type or default 'piece' — show generic 'units'
+    if (unitType == null || unitType == 'piece') return "$stock units";
     switch (unitType) {
-      case 'kg':
-        return "$stock bags/items";
-      case 'g':
-        return "$stock packets";
+      case 'kg':   return "$stock bags/items";
+      case 'g':    return "$stock packets";
       case 'litre':
-      case 'ml':
-        return "$stock bottles/cans";
-      case 'piece':
-        return "$stock items";
-      case 'pack':
-        return "$stock packs";
-      case 'bag':
-        return "$stock bags";
-      case 'bottle':
-        return "$stock bottles";
-      case 'box':
-        return "$stock boxes";
-      default:
-        return "$stock units";
+      case 'ml':   return "$stock bottles/cans";
+      case 'pack': return "$stock packs";
+      case 'bag':  return "$stock bags";
+      case 'bottle': return "$stock bottles";
+      case 'box':  return "$stock boxes";
+      default:     return "$stock units";
     }
   }
 
-  String _getWeightLabel(dynamic product, dynamic weight) {
-    final unitType = product['unit_type'] ?? 'piece';
+  String? _getWeightLabel(dynamic product, dynamic weight) {
+    final unitType = product['unit_type'];
     final parsedWeight = double.tryParse(weight.toString()) ?? 0.0;
-    final weightStr = parsedWeight % 1 == 0 ? parsedWeight.toInt().toString() : parsedWeight.toString();
-    
+    final weightStr = parsedWeight % 1 == 0
+        ? parsedWeight.toInt().toString()
+        : parsedWeight.toString();
+
+    // Old products with no real weight data — hide the field entirely
+    if (unitType == null || unitType == 'piece') {
+      return parsedWeight > 0 ? "$weightStr kg" : null;
+    }
+
     switch (unitType) {
-      case 'kg':
-        return "$weightStr kg each";
-      case 'g':
-        return "$weightStr g each";
-      case 'litre':
-        return "$weightStr L each";
-      case 'ml':
-        return "$weightStr mL each";
-      case 'piece':
-        return "1 piece";
-      case 'pack':
-        return "$weightStr g/pack";
-      case 'bag':
-        return "$weightStr kg/bag";
-      case 'bottle':
-        return "$weightStr mL/bottle";
-      case 'box':
-        return "$weightStr g/box";
-      default:
-        return "$weightStr kg";
+      case 'kg':     return "$weightStr kg each";
+      case 'g':      return "$weightStr g each";
+      case 'litre':  return "$weightStr L each";
+      case 'ml':     return "$weightStr mL each";
+      case 'pack':   return "$weightStr g/pack";
+      case 'bag':    return "$weightStr kg/bag";
+      case 'bottle': return "$weightStr mL/bottle";
+      case 'box':    return "$weightStr g/box";
+      default:       return "$weightStr kg";
     }
   }
 
@@ -348,13 +336,18 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
           ],
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            _buildSpecItem("Quantity Available", _getQuantityLabel(product, stock)),
-            const SizedBox(width: 40),
-            _buildSpecItem("Net Content", _getWeightLabel(product, weight)),
-          ],
-        ),
+        Builder(builder: (context) {
+          final weightLabel = _getWeightLabel(product, weight);
+          return Row(
+            children: [
+              _buildSpecItem("Quantity Available", _getQuantityLabel(product, stock)),
+              if (weightLabel != null) ...[  
+                const SizedBox(width: 40),
+                _buildSpecItem("Net Content", weightLabel),
+              ],
+            ],
+          );
+        }),
         const SizedBox(height: 24),
         Text(
           "Description",
