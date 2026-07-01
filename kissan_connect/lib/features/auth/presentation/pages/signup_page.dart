@@ -149,7 +149,8 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                               _emailController.text.trim(),
                               _passwordController.text.trim(),
                             );
-                        await ref.read(cartProvider.notifier).fetchCart();
+                        // Fetch cart in the background; do not block/await navigation
+                        ref.read(cartProvider.notifier).fetchCart();
                         ref.read(navProvider.notifier).state = 0;
                         if (mounted) {
                           RouteGenerator.navigateToPageWithoutStack(

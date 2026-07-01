@@ -25,10 +25,23 @@ class ProductListCreateView(generics.ListCreateAPIView):
     ordering_fields = ['price', 'created_at', 'name']
 
     def get_queryset(self):
-        return Product.objects.select_related('category').all()
+        return Product.objects.select_related(
+            'category',
+            'seller',
+            'seller__seller_profile'
+        ).prefetch_related(
+            'reviews'
+        ).all()
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Product.objects.select_related('category').prefetch_related('reviews__user')
+    queryset = Product.objects.select_related(
+        'category',
+        'seller',
+        'seller__seller_profile'
+    ).prefetch_related(
+        'reviews',
+        'reviews__user'
+    )
     serializer_class = ProductSerializer
     permission_classes = [permissions.AllowAny]
 
@@ -51,7 +64,14 @@ class SellerProductViewSet(viewsets.ModelViewSet):
     permission_classes = [IsSeller, IsProductOwner]
 
     def get_queryset(self):
-        return Product.objects.filter(seller=self.request.user)
+        return Product.objects.filter(seller=self.request.user).select_related(
+            'category',
+            'seller',
+            'seller__seller_profile'
+        ).prefetch_related(
+            'reviews',
+            'reviews__user'
+        )
 
     def perform_create(self, serializer):
         serializer.save(seller=self.request.user)

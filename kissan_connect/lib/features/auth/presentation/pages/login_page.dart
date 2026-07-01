@@ -201,7 +201,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                     _passwordController.text.trim(),
                                   );
                               await _saveRememberMe();
-                              await ref.read(cartProvider.notifier).fetchCart();
+                              // Fetch cart in the background; do not block/await navigation
+                              ref.read(cartProvider.notifier).fetchCart();
                               ref.read(navProvider.notifier).state = 0;
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(

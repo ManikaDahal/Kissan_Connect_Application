@@ -59,7 +59,13 @@ class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user).order_by('-created_at')
+        return Order.objects.filter(user=self.request.user).select_related(
+            'user',
+            'shipping_address'
+        ).prefetch_related(
+            'items',
+            'items__product'
+        ).order_by('-created_at')
 
     def create(self, request, *args, **kwargs):
         items_data = request.data.get('items', [])
