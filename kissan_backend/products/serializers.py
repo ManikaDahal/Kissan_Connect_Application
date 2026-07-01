@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Category, Product, Review
+from .models import Category, Product, Review, CategorySuggestion
+
 
 class CategorySerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
@@ -13,6 +14,7 @@ class CategorySerializer(serializers.ModelSerializer):
             return obj.image.url
         return None
 
+
 class ReviewSerializer(serializers.ModelSerializer):
     username = serializers.ReadOnlyField(source='user.full_name')
 
@@ -20,6 +22,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         fields = ('id', 'product', 'user', 'username', 'rating', 'comment', 'created_at')
         read_only_fields = ('user',)
+
 
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.SerializerMethodField()
@@ -34,10 +37,10 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = (
-            'id', 'name', 'category', 'category_name', 'description', 
-            'price', 'stock', 'weight', 'image', 'is_famous', 
+            'id', 'name', 'category', 'category_name', 'description',
+            'price', 'stock', 'weight', 'unit_type', 'image', 'is_famous',
             'created_at', 'reviews', 'average_rating', 'total_reviews',
-            'seller', 'seller_name', 'shop_name', 'shop_address'
+            'seller', 'seller_name', 'shop_name', 'shop_address',
         )
 
     def get_category_name(self, obj):
@@ -52,8 +55,9 @@ class ProductSerializer(serializers.ModelSerializer):
             return url
         return None
 
+
 class ProductListSerializer(serializers.ModelSerializer):
-    """Lightweight serializer for listing products - no embedded reviews."""
+    """Lightweight serializer for listing products — no embedded reviews."""
     category_name = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
     average_rating = serializers.ReadOnlyField()
@@ -65,8 +69,8 @@ class ProductListSerializer(serializers.ModelSerializer):
         model = Product
         fields = (
             'id', 'name', 'category', 'category_name', 'description',
-            'price', 'stock', 'weight', 'image', 'is_famous',
-            'created_at', 'average_rating', 'total_reviews', 'shop_name', 'shop_address'
+            'price', 'stock', 'weight', 'unit_type', 'image', 'is_famous',
+            'created_at', 'average_rating', 'total_reviews', 'shop_name', 'shop_address',
         )
 
     def get_category_name(self, obj):
@@ -79,3 +83,12 @@ class ProductListSerializer(serializers.ModelSerializer):
                 return url.replace('/upload/', '/upload/f_jpg/')
             return url
         return None
+
+
+class CategorySuggestionSerializer(serializers.ModelSerializer):
+    seller_name = serializers.ReadOnlyField(source='seller.full_name')
+
+    class Meta:
+        model = CategorySuggestion
+        fields = ('id', 'name', 'reason', 'status', 'admin_note', 'seller_name', 'created_at', 'reviewed_at')
+        read_only_fields = ('status', 'admin_note', 'seller_name', 'reviewed_at')

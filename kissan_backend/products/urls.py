@@ -2,7 +2,8 @@ from django.urls import path
 from .views import (
     CategoryListCreateView, CategoryDetailView,
     ProductListCreateView, ProductDetailView,
-    ReviewListCreateView, SellerProductViewSet
+    ReviewListCreateView, SellerProductViewSet,
+    CategorySuggestionViewSet
 )
 from rest_framework.routers import DefaultRouter
 
@@ -16,4 +17,5 @@ urlpatterns = [
 
 router = DefaultRouter()
 router.register('seller/my-items', SellerProductViewSet, basename='seller-products')
+router.register('seller/category-suggestions', CategorySuggestionViewSet, basename='seller-category-suggestions')
 urlpatterns += router.urls

@@ -108,6 +108,60 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
     }
   }
 
+  String _getQuantityLabel(dynamic product, dynamic stock) {
+    final unitType = product['unit_type'] ?? 'piece';
+    switch (unitType) {
+      case 'kg':
+        return "$stock bags/items";
+      case 'g':
+        return "$stock packets";
+      case 'litre':
+      case 'ml':
+        return "$stock bottles/cans";
+      case 'piece':
+        return "$stock items";
+      case 'pack':
+        return "$stock packs";
+      case 'bag':
+        return "$stock bags";
+      case 'bottle':
+        return "$stock bottles";
+      case 'box':
+        return "$stock boxes";
+      default:
+        return "$stock units";
+    }
+  }
+
+  String _getWeightLabel(dynamic product, dynamic weight) {
+    final unitType = product['unit_type'] ?? 'piece';
+    final parsedWeight = double.tryParse(weight.toString()) ?? 0.0;
+    final weightStr = parsedWeight % 1 == 0 ? parsedWeight.toInt().toString() : parsedWeight.toString();
+    
+    switch (unitType) {
+      case 'kg':
+        return "$weightStr kg each";
+      case 'g':
+        return "$weightStr g each";
+      case 'litre':
+        return "$weightStr L each";
+      case 'ml':
+        return "$weightStr mL each";
+      case 'piece':
+        return "1 piece";
+      case 'pack':
+        return "$weightStr g/pack";
+      case 'bag':
+        return "$weightStr kg/bag";
+      case 'bottle':
+        return "$weightStr mL/bottle";
+      case 'box':
+        return "$weightStr g/box";
+      default:
+        return "$weightStr kg";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final product = _currentProduct;
@@ -241,25 +295,29 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
                 ],
               ),
               child: ElevatedButton(
-                onPressed: () {
-                  ref.read(cartProvider.notifier).addToCart(product);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("${product['name']} added to cart!")),
-                  );
-                },
+                onPressed: stock <= 0
+                    ? null
+                    : () {
+                        ref.read(cartProvider.notifier).addToCart(product);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("${product['name']} added to cart!")),
+                        );
+                      },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryGreen,
+                  backgroundColor: stock <= 0 ? Colors.grey : AppTheme.primaryGreen,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Add to Cart", style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 8),
-                    Text("|", style: TextStyle(color: Colors.white.withOpacity(0.5))),
-                    const SizedBox(width: 8),
-                    Text("Rs. $price", style: const TextStyle(fontSize: 18, color: Colors.white)),
+                    Text(stock <= 0 ? "Out of Stock" : "Add to Cart", style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+                    if (stock > 0) ...[
+                      const SizedBox(width: 8),
+                      Text("|", style: TextStyle(color: Colors.white.withOpacity(0.5))),
+                      const SizedBox(width: 8),
+                      Text("Rs. $price", style: const TextStyle(fontSize: 18, color: Colors.white)),
+                    ],
                   ],
                 ),
               ),
@@ -292,9 +350,9 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
         const SizedBox(height: 16),
         Row(
           children: [
-            _buildSpecItem("Quantity Available", "$stock units"),
+            _buildSpecItem("Quantity Available", _getQuantityLabel(product, stock)),
             const SizedBox(width: 40),
-            _buildSpecItem("Net Weight", "${weight}kg"),
+            _buildSpecItem("Net Content", _getWeightLabel(product, weight)),
           ],
         ),
         const SizedBox(height: 24),

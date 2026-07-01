@@ -20,8 +20,21 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   File? _image;
   String? _selectedCategory;
+  String _selectedUnitType = 'piece';
   List<dynamic> _categories = [];
   bool _isLoading = false;
+
+  final List<Map<String, String>> _unitTypes = [
+    {'value': 'kg', 'label': 'Kilograms (kg)'},
+    {'value': 'g', 'label': 'Grams (g)'},
+    {'value': 'litre', 'label': 'Litres (L)'},
+    {'value': 'ml', 'label': 'Millilitres (mL)'},
+    {'value': 'piece', 'label': 'Piece / Item'},
+    {'value': 'pack', 'label': 'Pack / Packet'},
+    {'value': 'bag', 'label': 'Bag'},
+    {'value': 'bottle', 'label': 'Bottle'},
+    {'value': 'box', 'label': 'Box'},
+  ];
 
   @override
   void initState() {
@@ -47,6 +60,80 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
+  Future<void> _showSuggestCategoryDialog() async {
+    final nameController = TextEditingController();
+    final reasonController = TextEditingController();
+    final suggestFormKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Suggest New Category", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Form(
+          key: suggestFormKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: "Category Name",
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) => v == null || v.trim().isEmpty ? "Required" : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: reasonController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: "Why is this category needed?",
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) => v == null || v.trim().isEmpty ? "Required" : null,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              if (!suggestFormKey.currentState!.validate()) return;
+              Navigator.pop(context);
+              setState(() => _isLoading = true);
+              try {
+                await ApiService.post('products/seller/category-suggestions/', {
+                  'name': nameController.text.trim(),
+                  'reason': reasonController.text.trim(),
+                });
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Category suggestion submitted! Admin will review it.")),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Error: $e")),
+                  );
+                }
+              } finally {
+                if (mounted) setState(() => _isLoading = false);
+              }
+            },
+            child: const Text("Submit"),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _submitProduct() async {
     if (!_formKey.currentState!.validate() ||
         _image == null ||
@@ -69,6 +156,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         'stock': _stockController.text,
         'weight': _weightController.text,
         'category': _selectedCategory!,
+        'unit_type': _selectedUnitType,
       };
 
       final files = {'image': _image!.path};
@@ -165,7 +253,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       onChanged: (v) => setState(() => _selectedCategory = v),
                       validator: (v) => v == null ? "Required" : null,
                     ),
-                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        icon: const Icon(Icons.add, size: 16, color: Colors.green),
+                        label: const Text("Can't find category? Suggest one", style: TextStyle(color: Colors.green, fontSize: 13)),
+                        onPressed: _showSuggestCategoryDialog,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     TextFormField(
                       controller: _descController,
                       maxLines: 3,
@@ -192,9 +288,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: TextFormField(
-                            controller: _weightController,
+                            controller: _stockController,
+                            keyboardType: TextInputType.number,
                             decoration: const InputDecoration(
-                              labelText: "Weight (e.g. 1kg)",
+                              labelText: "Initial Stock",
                               border: OutlineInputBorder(),
                             ),
                             validator: (v) => v!.isEmpty ? "Required" : null,
@@ -203,14 +300,39 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _stockController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: "Initial Stock",
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (v) => v!.isEmpty ? "Required" : null,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _weightController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(
+                              labelText: "Net Amount (e.g. 1, 500)",
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (v) => v!.isEmpty ? "Required" : null,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            decoration: const InputDecoration(
+                              labelText: "Unit",
+                              border: OutlineInputBorder(),
+                            ),
+                            value: _selectedUnitType,
+                            items: _unitTypes
+                                .map(
+                                  (u) => DropdownMenuItem<String>(
+                                    value: u['value'],
+                                    child: Text(u['label']!),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (v) => setState(() => _selectedUnitType = v!),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton(

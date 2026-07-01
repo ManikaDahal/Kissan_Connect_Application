@@ -59,34 +59,82 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
     } catch (_) {}
   }
 
-  Future<void> _updateStock(int productId, int currentStock) async {
-    final controller = TextEditingController(text: currentStock.toString());
+  Future<void> _editProduct(int productId, double currentPrice, int currentStock) async {
+    final priceController = TextEditingController(text: currentPrice.toString());
+    final stockController = TextEditingController(text: currentStock.toString());
+    final formKey = GlobalKey<FormState>();
     
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Update Stock"),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: "New Stock Quantity"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Edit Price & Stock", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: priceController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: "Price (Rs.)",
+                  border: OutlineInputBorder(),
+                  prefixText: "Rs. ",
+                ),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return "Required";
+                  if (double.tryParse(v) == null) return "Enter a valid price";
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: stockController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: "Stock Quantity",
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return "Required";
+                  if (int.tryParse(v) == null) return "Enter a valid number";
+                  return null;
+                },
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
               try {
+                // Update stock
                 await ApiService.patch('products/seller/my-items/$productId/update-stock/', {
-                  'stock': int.parse(controller.text)
+                  'stock': int.parse(stockController.text)
                 });
-                Navigator.pop(context);
-                _fetchMyProducts();
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Stock updated!")));
+                // Update price
+                await ApiService.patch('products/seller/my-items/$productId/update-price/', {
+                  'price': double.parse(priceController.text)
+                });
+                if (mounted) {
+                  Navigator.pop(context);
+                  _fetchMyProducts();
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Product updated successfully!")));
+                }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+                }
               }
             },
-            child: const Text("Update"),
+            child: const Text("Save"),
           ),
         ],
       ),
@@ -299,8 +347,12 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
         ),
         trailing: IconButton(
           icon: const Icon(Icons.edit_calendar_outlined, color: Colors.blue),
-          onPressed: () => _updateStock(product['id'], product['stock'] ?? 0),
-          tooltip: "Update Stock",
+          onPressed: () {
+            final price = double.tryParse(product['price'].toString()) ?? 0.0;
+            final stock = (product['stock'] ?? 0) as int;
+            _editProduct(product['id'], price, stock);
+          },
+          tooltip: "Edit Price & Stock",
         ),
       ),
     );
