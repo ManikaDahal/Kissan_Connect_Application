@@ -17,7 +17,7 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver {
   List<dynamic> _categories = [];
   List<dynamic> _famousProducts = [];
   List<dynamic> _allProducts = [];
@@ -32,15 +32,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadCachedData();
     _fetchData(isSilent: true);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
     _debounce?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Refresh silently when app comes back to foreground
+    if (state == AppLifecycleState.resumed) {
+      _fetchData(isRefresh: true);
+    }
   }
 
   Future<void> _loadCachedData() async {
@@ -90,7 +100,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final List<Future<dynamic>> futures = [];
       
       // 0: Categories (conditional)
-      if (_categories.isEmpty || isRefresh) {
+      if (_categories.isEmpty || isRefresh || isSilent) {
         futures.add(ApiService.get('products/categories/').catchError((e) {
           debugPrint("Categories error: $e");
           return null;
@@ -110,7 +120,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }));
       
       // 2: Famous products (conditional)
-      if (_searchQuery.isEmpty && (_famousProducts.isEmpty || isRefresh)) {
+      if (_searchQuery.isEmpty && (_famousProducts.isEmpty || isRefresh || isSilent)) {
         futures.add(ApiService.get('products/products/', params: {'is_famous': 'true'}).catchError((e) {
           debugPrint("Famous products error: $e");
           return null;
@@ -165,6 +175,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(navProvider, (previous, next) {
+      if (next == 0) {
+        _fetchData(isSilent: true);
+      }
+    });
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       appBar: CustomAppBar(
@@ -277,7 +293,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           itemCount: _famousProducts.length,
                           itemBuilder: (context, index) {
                             final product = _famousProducts[index];
-                            return ProductCard(product: product, horizontal: true);
+                            return ProductCard(
+                              product: product,
+                              horizontal: true,
+                              onPop: () => _fetchData(isSilent: true),
+                            );
                           },
                         ),
                       ),
@@ -342,7 +362,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       itemCount: _allProducts.length,
                       itemBuilder: (context, index) {
                         final product = _allProducts[index];
-                        return ProductCard(product: product);
+                        return ProductCard(
+                          product: product,
+                          onPop: () => _fetchData(isSilent: true),
+                        );
                       },
                     ),
                   const SizedBox(height: 24),

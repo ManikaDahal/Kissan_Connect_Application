@@ -12,12 +12,12 @@ import 'package:kissan_connect/screens/home/product_details_screen.dart';
 import 'package:kissan_connect/screens/onboarding_screen.dart';
 
 class RouteGenerator {
-  static void navigateToPage(
+  static Future<dynamic>? navigateToPage(
     BuildContext context,
     String route, {
     dynamic arguments,
   }) {
-    Navigator.push(
+    return Navigator.push(
       context,
       generateRoute(RouteSettings(name: route, arguments: arguments)),
     );

@@ -8,21 +8,28 @@ import '../theme/app_theme.dart';
 class ProductCard extends ConsumerWidget {
   final dynamic product;
   final bool horizontal;
+  final VoidCallback? onPop;
 
   const ProductCard({
     super.key,
     required this.product,
     this.horizontal = false,
+    this.onPop,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
-      onTap: () => RouteGenerator.navigateToPage(
-        context,
-        Routes.productDetailsRoute,
-        arguments: product,
-      ),
+      onTap: () async {
+        await RouteGenerator.navigateToPage(
+          context,
+          Routes.productDetailsRoute,
+          arguments: product,
+        );
+        if (onPop != null) {
+          onPop!();
+        }
+      },
       child: Container(
         width: horizontal ? 160 : null,
         margin: horizontal ? const EdgeInsets.only(right: 16) : null,

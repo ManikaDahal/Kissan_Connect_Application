@@ -26,7 +26,8 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
     _fetchEarningsSummary();
   }
 
-  Future<void> _fetchMyProducts() async {
+  Future<void> _fetchMyProducts({bool silent = false}) async {
+    if (!silent && mounted) setState(() => _isLoading = true);
     try {
       final response = await ApiService.get('products/seller/my-items/');
       if (mounted) {
@@ -40,6 +41,47 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Error fetching products: $e")),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteProduct(int productId, String productName) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Delete Product", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(
+          'Are you sure you want to delete "$productName"? This cannot be undone.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ApiService.delete('products/seller/my-items/$productId/');
+      if (mounted) {
+        setState(() {
+          _myProducts.removeWhere((p) => p['id'] == productId);
+        });
+        _fetchMyProducts(silent: true);
+        _fetchEarningsSummary();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Product deleted."), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
         );
       }
     }
@@ -115,17 +157,29 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
               try {
+                final newStock = int.parse(stockController.text);
+                final newPrice = double.parse(priceController.text);
                 // Update stock
                 await ApiService.patch('products/seller/my-items/$productId/update-stock/', {
-                  'stock': int.parse(stockController.text)
+                  'stock': newStock
                 });
                 // Update price
                 await ApiService.patch('products/seller/my-items/$productId/update-price/', {
-                  'price': double.parse(priceController.text)
+                  'price': newPrice
                 });
                 if (mounted) {
+                  setState(() {
+                    final index = _myProducts.indexWhere((p) => p['id'] == productId);
+                    if (index != -1) {
+                      final updatedProduct = Map<String, dynamic>.from(_myProducts[index]);
+                      updatedProduct['stock'] = newStock;
+                      updatedProduct['price'] = newPrice.toString();
+                      _myProducts[index] = updatedProduct;
+                    }
+                  });
                   Navigator.pop(context);
-                  _fetchMyProducts();
+                  _fetchMyProducts(silent: true);
+                  _fetchEarningsSummary();
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Product updated successfully!")));
                 }
               } catch (e) {
@@ -345,14 +399,24 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
             Text("Stock: ${product['stock']} units", style: TextStyle(color: (product['stock'] ?? 0) < 5 ? Colors.red : Colors.green)),
           ],
         ),
-        trailing: IconButton(
-          icon: const Icon(Icons.edit_calendar_outlined, color: Colors.blue),
-          onPressed: () {
-            final price = double.tryParse(product['price'].toString()) ?? 0.0;
-            final stock = (product['stock'] ?? 0) as int;
-            _editProduct(product['id'], price, stock);
-          },
-          tooltip: "Edit Price & Stock",
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+              onPressed: () {
+                final price = double.tryParse(product['price'].toString()) ?? 0.0;
+                final stock = (product['stock'] ?? 0) as int;
+                _editProduct(product['id'], price, stock);
+              },
+              tooltip: "Edit Price & Stock",
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              onPressed: () => _deleteProduct(product['id'], product['name']),
+              tooltip: "Delete Product",
+            ),
+          ],
         ),
       ),
     );
