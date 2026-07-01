@@ -1,4 +1,4 @@
-package com.example.kissan_connect
+package com.kissanconnect.app
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 
