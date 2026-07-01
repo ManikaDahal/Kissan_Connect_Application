@@ -26,18 +26,21 @@ class OrderModel {
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     return OrderModel(
       id: json['id'],
-      userEmail: json['user_email'],
-      totalAmount: double.parse(json['total_amount'].toString()),
-      status: json['status'],
-      paymentGateway: json['payment_gateway'],
+      userEmail: json['user_email'] ?? '',
+      totalAmount: double.parse(json['total_amount']?.toString() ?? '0.0'),
+      status: json['status'] ?? 'pending',
+      paymentGateway: json['payment_gateway'] ?? 'cod',
       transactionId: json['transaction_id'],
-      items: (json['items'] as List)
-          .map((i) => OrderItemModel.fromJson(i))
-          .toList(),
+      items: (json['items'] as List?)
+              ?.map((i) => OrderItemModel.fromJson(i))
+              .toList() ??
+          [],
       shippingAddress: json['shipping_address'] != null
           ? UserAddress.fromJson(json['shipping_address'])
           : null,
-      createdAt: DateTime.parse(json['created_at']),
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at']) 
+          : DateTime.now(),
     );
   }
 }
@@ -63,9 +66,9 @@ class OrderItemModel {
     return OrderItemModel(
       id: json['id'],
       productId: json['product'],
-      productName: json['product_name'],
-      quantity: json['quantity'],
-      price: double.parse(json['price'].toString()),
+      productName: json['product_name'] ?? 'Deleted Product',
+      quantity: json['quantity'] ?? 1,
+      price: double.parse(json['price']?.toString() ?? '0.0'),
       status: json['status'] ?? 'pending',
     );
   }

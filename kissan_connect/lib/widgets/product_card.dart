@@ -67,15 +67,8 @@ class ProductCard extends ConsumerWidget {
                           )
                         : const Icon(Icons.shopping_bag, size: 40, color: Colors.grey),
                   ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                      child: const Icon(Icons.favorite_border, size: 18, color: Colors.red),
-                    ),
-                  ),
+                  // No favorite icon here as requested
+
                 ],
               ),
             ),

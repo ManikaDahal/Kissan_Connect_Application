@@ -174,12 +174,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
                   icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
                   onPressed: () => Navigator.pop(context),
                 ),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.favorite_border, color: Colors.black87),
-                    onPressed: () {},
-                  ),
-                ],
+
                 flexibleSpace: FlexibleSpaceBar(
                   background: Stack(
                     alignment: Alignment.center,
