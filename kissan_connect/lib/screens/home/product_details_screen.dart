@@ -58,8 +58,11 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
           'category': categoryId.toString(),
         });
         if (mounted) {
+          final List<dynamic> productsList = (data is Map && data.containsKey('results'))
+              ? data['results']
+              : (data is List ? data : []);
           setState(() {
-            _similarProducts = (data['results'] as List)
+            _similarProducts = productsList
                 .where((p) => p['id'] != widget.product['id'])
                 .toList();
             _isLoadingSimilar = false;
@@ -67,6 +70,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
         }
       }
     } catch (e) {
+      debugPrint("Error fetching similar products: $e");
       if (mounted) setState(() => _isLoadingSimilar = false);
     }
   }
