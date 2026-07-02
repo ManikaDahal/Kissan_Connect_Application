@@ -27,6 +27,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
   bool _isPasswordVisible = false;
   bool _isAgreedToTerms = false;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -207,8 +208,9 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                 SocialButton(
                   iconPath: "assets/images/google_logo.png",
                   label: "Signup with Google",
-                  onPressed: _isLoading ? () {} : () async {
-                    setState(() => _isLoading = true);
+                  isLoading: _isGoogleLoading,
+                  onPressed: (_isLoading || _isGoogleLoading) ? () {} : () async {
+                    setState(() => _isGoogleLoading = true);
                     try {
                       final GoogleSignIn googleSignIn = GoogleSignIn(
                         serverClientId: '344012641554-kuche2uqq1mtm411l6eq2bu5ueadm2dd.apps.googleusercontent.com',
@@ -236,7 +238,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                       }
                     } finally {
                       if (mounted) {
-                        setState(() => _isLoading = false);
+                        setState(() => _isGoogleLoading = false);
                       }
                     }
                   },
