@@ -25,32 +25,32 @@ const List<_OnboardingPage> _pages = [
     title: 'Welcome to',
     subtitle: 'KissanConnect',
     description:
-        'Empowering farmers with modern technology. Connect, grow, and thrive with the smartest agricultural platform built just for you.',
+        'Empowering the agricultural ecosystem. Check live weather, browse local farm products, and trade securely in one place.',
     icon: Icons.agriculture_rounded,
     gradient: [Color(0xFF1B5E20), Color(0xFF2E7D32), Color(0xFF43A047)],
   ),
   _OnboardingPage(
-    title: 'Smart Crop',
-    subtitle: 'Advisory',
+    title: 'Live Weather',
+    subtitle: 'Forecasts',
     description:
-        'Get real-time expert advice on crop health, weather forecasts, and best farming practices tailored to your region and season.',
-    icon: Icons.eco_rounded,
+        'Plan your activities with integrated local weather updates and personalized farming recommendations based on current conditions.',
+    icon: Icons.wb_sunny_rounded,
     gradient: [Color(0xFF004D40), Color(0xFF00695C), Color(0xFF00897B)],
   ),
   _OnboardingPage(
-    title: 'Sell Your',
-    subtitle: 'Produce Directly',
+    title: 'Secure Farm',
+    subtitle: 'Marketplace',
     description:
-        'Cut out the middlemen! List your harvest and connect directly with buyers, getting the best price for all your hard work.',
-    icon: Icons.storefront_rounded,
+        'Browse fresh produce, add items to your cart, and complete orders with secure digital payments through trusted payment gateways.',
+    icon: Icons.shopping_cart_checkout_rounded,
     gradient: [Color(0xFFE65100), Color(0xFFF57C00), Color(0xFFFFA726)],
   ),
   _OnboardingPage(
-    title: 'Community',
-    subtitle: '& Support',
+    title: 'Seller Portal',
+    subtitle: '& Dashboard',
     description:
-        'Join thousands of farmers on KissanConnect. Share knowledge, ask questions, and grow together as one strong farming community.',
-    icon: Icons.people_alt_rounded,
+        'Register as a vendor to list your harvest, manage incoming customer orders, and track your multi-vendor payouts seamlessly.',
+    icon: Icons.dashboard_rounded,
     gradient: [Color(0xFF1A237E), Color(0xFF283593), Color(0xFF3949AB)],
   ),
 ];
@@ -106,11 +106,15 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         curve: Curves.easeInOut,
       );
     } else {
-      _goToLogin();
+      _goToSignup();
     }
   }
 
-  void _skip() => _goToLogin();
+  void _skip() => _goToSignup();
+
+  void _goToSignup() {
+    RouteGenerator.navigateToPageWithoutStack(context, Routes.signupRoute);
+  }
 
   void _goToLogin() {
     RouteGenerator.navigateToPageWithoutStack(context, Routes.loginRoute);
