@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "788697519956",
+    "project_id": "kissanconnect-210ef",
+    "storage_bucket": "kissanconnect-210ef.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:788697519956:android:c3960e2cc78f1f99009ac1",
+        "android_client_info": {
+          "package_name": "com.kissanconnect.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "788697519956-32n64hfvje6hfma9fcp81nfu804msbde.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kissanconnect.app",
+            "certificate_hash": "377d6748174f36e15257410df8df4e13e0aa909b"
+          }
+        },
+        {
+          "client_id": "788697519956-j29oat9fn2qn3anta0d8actssq51mquv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kissanconnect.app",
+            "certificate_hash": "45199b211fdd2282a9135181ade679a74c4851aa"
+          }
+        },
+        {
+          "client_id": "788697519956-v4sldco3nb8q4jqcqnl4gdmqu98i6qo7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA8n0rWEeL49c6pJiWKnPDn3d7u-6SdOvw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "788697519956-v4sldco3nb8q4jqcqnl4gdmqu98i6qo7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

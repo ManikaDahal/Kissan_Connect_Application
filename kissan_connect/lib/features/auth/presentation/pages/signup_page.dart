@@ -213,9 +213,9 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                     setState(() => _isGoogleLoading = true);
                     try {
                       final GoogleSignIn googleSignIn = GoogleSignIn(
-                        serverClientId: '344012641554-kuche2uqq1mtm411l6eq2bu5ueadm2dd.apps.googleusercontent.com',
+                        serverClientId: '788697519956-v4sldco3nb8q4jqcqnl4gdmqu98i6qo7.apps.googleusercontent.com',
                       );
-                      
+                      await googleSignIn.signOut();
                       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
                       if (googleUser != null) {
                         final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
