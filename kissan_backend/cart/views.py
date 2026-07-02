@@ -11,7 +11,11 @@ class CartDetailView(generics.RetrieveAPIView):
 
     def get_object(self):
         cart, _ = Cart.objects.get_or_create(user=self.request.user)
-        return cart
+        return Cart.objects.prefetch_related(
+            'items__product__category',
+            'items__product__seller__seller_profile',
+            'items__product__reviews'
+        ).get(id=cart.id)
 
 class AddToCartView(views.APIView):
     """Add a product to the cart or update its quantity."""

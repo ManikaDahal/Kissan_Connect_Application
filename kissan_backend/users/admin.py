@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, EmailOTP, SellerProfile
+from .models import User, EmailOTP, SellerProfile, SupportTicket
 from unfold.admin import ModelAdmin
 
 @admin.register(User)
@@ -25,4 +25,34 @@ class SellerProfileAdmin(ModelAdmin):
     list_display = ('shop_name', 'user', 'payout_gateway', 'status', 'created_at')
     list_filter = ('status', 'payout_gateway')
     search_fields = ('shop_name', 'user__email')
-    readonly_fields = ('created_at', 'updated_at')
+    list_editable = ('status',)
+    
+    # Protecting seller data: Admin can only change the "Status"
+    readonly_fields = (
+        'user', 'shop_name', 'shop_description', 'shop_address', 
+        'PAN_NUMBER', 'citizenship_front', 'citizenship_back', 
+        'payout_gateway', 'payout_id', 'created_at', 'updated_at'
+    )
+    
+    fieldsets = (
+        ('Business Information', {
+            'fields': ('user', 'shop_name', 'shop_description', 'shop_address', 'status')
+        }),
+        ('Verification Documents', {
+            'fields': ('PAN_NUMBER', 'citizenship_front', 'citizenship_back')
+        }),
+        ('Payout Details', {
+            'fields': ('payout_gateway', 'payout_id')
+        }),
+    )
+
+@admin.register(SupportTicket)
+class SupportTicketAdmin(ModelAdmin):
+    list_display = ('id', 'user', 'short_message', 'is_resolved', 'created_at')
+    list_filter = ('is_resolved', 'created_at')
+    search_fields = ('user__email', 'message')
+    list_editable = ('is_resolved',)
+
+    def short_message(self, obj):
+        return obj.message[:50] + '...' if len(obj.message) > 50 else obj.message
+    short_message.short_description = "Message Preview"

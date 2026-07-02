@@ -8,21 +8,28 @@ import '../theme/app_theme.dart';
 class ProductCard extends ConsumerWidget {
   final dynamic product;
   final bool horizontal;
+  final VoidCallback? onPop;
 
   const ProductCard({
     super.key,
     required this.product,
     this.horizontal = false,
+    this.onPop,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
-      onTap: () => RouteGenerator.navigateToPage(
-        context,
-        Routes.productDetailsRoute,
-        arguments: product,
-      ),
+      onTap: () async {
+        await RouteGenerator.navigateToPage(
+          context,
+          Routes.productDetailsRoute,
+          arguments: product,
+        );
+        if (onPop != null) {
+          onPop!();
+        }
+      },
       child: Container(
         width: horizontal ? 160 : null,
         margin: horizontal ? const EdgeInsets.only(right: 16) : null,
@@ -40,18 +47,28 @@ class ProductCard extends ConsumerWidget {
                     width: double.infinity,
                     color: Colors.grey[100],
                     child: product['image'] != null && product['image'].toString().isNotEmpty
-                        ? Image.network(product['image'], fit: BoxFit.cover)
+                        ? Image.network(
+                            product['image'], 
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                      : null,
+                                  strokeWidth: 2,
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) => const Center(
+                              child: Icon(Icons.broken_image_outlined, color: Colors.grey, size: 30),
+                            ),
+                          )
                         : const Icon(Icons.shopping_bag, size: 40, color: Colors.grey),
                   ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                      child: const Icon(Icons.favorite_border, size: 18, color: Colors.red),
-                    ),
-                  ),
+                  // No favorite icon here as requested
+
                 ],
               ),
             ),
@@ -65,6 +82,11 @@ class ProductCard extends ConsumerWidget {
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    product['shop_name'] ?? "Store",
+                    style: TextStyle(color: Colors.grey[500], fontSize: 10),
+                    maxLines: 1,
                   ),
                   const SizedBox(height: 4),
                   Row(

@@ -58,8 +58,11 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
           'category': categoryId.toString(),
         });
         if (mounted) {
+          final List<dynamic> productsList = (data is Map && data.containsKey('results'))
+              ? data['results']
+              : (data is List ? data : []);
           setState(() {
-            _similarProducts = (data['results'] as List)
+            _similarProducts = productsList
                 .where((p) => p['id'] != widget.product['id'])
                 .toList();
             _isLoadingSimilar = false;
@@ -67,6 +70,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
         }
       }
     } catch (e) {
+      debugPrint("Error fetching similar products: $e");
       if (mounted) setState(() => _isLoadingSimilar = false);
     }
   }
@@ -108,6 +112,48 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
     }
   }
 
+  String _getQuantityLabel(dynamic product, dynamic stock) {
+    final unitType = product['unit_type'];
+    // Old products have no unit_type or default 'piece' — show generic 'units'
+    if (unitType == null || unitType == 'piece') return "$stock units";
+    switch (unitType) {
+      case 'kg':   return "$stock bags/items";
+      case 'g':    return "$stock packets";
+      case 'litre':
+      case 'ml':   return "$stock bottles/cans";
+      case 'pack': return "$stock packs";
+      case 'bag':  return "$stock bags";
+      case 'bottle': return "$stock bottles";
+      case 'box':  return "$stock boxes";
+      default:     return "$stock units";
+    }
+  }
+
+  String? _getWeightLabel(dynamic product, dynamic weight) {
+    final unitType = product['unit_type'];
+    final parsedWeight = double.tryParse(weight.toString()) ?? 0.0;
+    final weightStr = parsedWeight % 1 == 0
+        ? parsedWeight.toInt().toString()
+        : parsedWeight.toString();
+
+    // Old products with no real weight data — hide the field entirely
+    if (unitType == null || unitType == 'piece') {
+      return parsedWeight > 0 ? "$weightStr kg" : null;
+    }
+
+    switch (unitType) {
+      case 'kg':     return "$weightStr kg each";
+      case 'g':      return "$weightStr g each";
+      case 'litre':  return "$weightStr L each";
+      case 'ml':     return "$weightStr mL each";
+      case 'pack':   return "$weightStr g/pack";
+      case 'bag':    return "$weightStr kg/bag";
+      case 'bottle': return "$weightStr mL/bottle";
+      case 'box':    return "$weightStr g/box";
+      default:       return "$weightStr kg";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final product = _currentProduct;
@@ -129,15 +175,10 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
                 backgroundColor: const Color(0xFFE8F5E9),
                 elevation: 0,
                 leading: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                  icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
                   onPressed: () => Navigator.pop(context),
                 ),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.favorite_border, color: Colors.black87),
-                    onPressed: () {},
-                  ),
-                ],
+
                 flexibleSpace: FlexibleSpaceBar(
                   background: Stack(
                     alignment: Alignment.center,
@@ -241,25 +282,29 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
                 ],
               ),
               child: ElevatedButton(
-                onPressed: () {
-                  ref.read(cartProvider.notifier).addToCart(product);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("${product['name']} added to cart!")),
-                  );
-                },
+                onPressed: stock <= 0
+                    ? null
+                    : () {
+                        ref.read(cartProvider.notifier).addToCart(product);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("${product['name']} added to cart!")),
+                        );
+                      },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryGreen,
+                  backgroundColor: stock <= 0 ? Colors.grey : AppTheme.primaryGreen,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Add to Cart", style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 8),
-                    Text("|", style: TextStyle(color: Colors.white.withOpacity(0.5))),
-                    const SizedBox(width: 8),
-                    Text("Rs. $price", style: const TextStyle(fontSize: 18, color: Colors.white)),
+                    Text(stock <= 0 ? "Out of Stock" : "Add to Cart", style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+                    if (stock > 0) ...[
+                      const SizedBox(width: 8),
+                      Text("|", style: TextStyle(color: Colors.white.withOpacity(0.5))),
+                      const SizedBox(width: 8),
+                      Text("Rs. $price", style: const TextStyle(fontSize: 18, color: Colors.white)),
+                    ],
                   ],
                 ),
               ),
@@ -290,13 +335,18 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
           ],
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            _buildSpecItem("Quantity Available", "$stock units"),
-            const SizedBox(width: 40),
-            _buildSpecItem("Net Weight", "${weight}kg"),
-          ],
-        ),
+        Builder(builder: (context) {
+          final weightLabel = _getWeightLabel(product, weight);
+          return Row(
+            children: [
+              _buildSpecItem("Quantity Available", _getQuantityLabel(product, stock)),
+              if (weightLabel != null) ...[  
+                const SizedBox(width: 40),
+                _buildSpecItem("Net Content", weightLabel),
+              ],
+            ],
+          );
+        }),
         const SizedBox(height: 24),
         Text(
           "Description",
@@ -306,6 +356,35 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
         Text(
           product['description'] ?? "No description available.",
           style: TextStyle(color: Colors.grey[600], height: 1.5),
+        ),
+        const SizedBox(height: 24),
+        const Divider(),
+        const SizedBox(height: 16),
+        // Seller Information
+        Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: AppTheme.primaryGreen.withOpacity(0.1),
+              child: const Icon(Icons.store, color: AppTheme.primaryGreen),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Sold By:", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(
+                    product['shop_name'] ?? "Kissan Vendor",
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    product['shop_address'] ?? "Address not provided",
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ],
     );

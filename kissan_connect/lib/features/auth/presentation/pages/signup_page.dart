@@ -30,17 +30,19 @@ class _SignupPageState extends ConsumerState<SignupPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: foregroundColor),
-          onPressed: () => Navigator.pop(context),
+    return GestureDetector(
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: Scaffold(
+        backgroundColor: backgroundColor,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: foregroundColor),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
-      ),
-      body: SingleChildScrollView(
+        body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Form(
@@ -67,7 +69,11 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                   hintText: nameStr,
                   prefixIcon: const Icon(Icons.person_outline),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return validateNameStr;
+                    if (value == null || value.trim().isEmpty) return validateNameStr;
+                    if (value.trim().length < 2) return "Name must be at least 2 characters";
+                    if (!RegExp(r"^[a-zA-Z\s'\-]+$").hasMatch(value.trim())) {
+                      return "Name can only contain letters, spaces, hyphens or apostrophes";
+                    }
                     return null;
                   },
                 ),
@@ -78,8 +84,13 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                   keyboardType: TextInputType.emailAddress,
                   prefixIcon: const Icon(Icons.email_outlined),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return validateEmailAddressStr;
-                    if (!value.contains('@')) return "Please enter a valid email";
+                    if (value == null || value.trim().isEmpty) return validateEmailAddressStr;
+                    final emailRegex = RegExp(
+                      r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$',
+                    );
+                    if (!emailRegex.hasMatch(value.trim())) {
+                      return "Please enter a valid email (e.g. name@example.com)";
+                    }
                     return null;
                   },
                 ),
@@ -128,6 +139,9 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                 const SizedBox(height: 40),
                 CustomElevatedbutton(
                   onPressed: _isLoading ? () {} : () async {
+                    // Force keyboard down instantly on submit click
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    
                     if (_formKey.currentState!.validate() && _isAgreedToTerms) {
                       setState(() => _isLoading = true);
                       try {
@@ -136,11 +150,19 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                               _emailController.text.trim(),
                               _passwordController.text.trim(),
                             );
-                        await ref.read(cartProvider.notifier).fetchCart();
+                        // Fetch cart in the background; do not block/await navigation
+                        ref.read(cartProvider.notifier).fetchCart();
                         ref.read(navProvider.notifier).state = 0;
                         if (mounted) {
                           RouteGenerator.navigateToPageWithoutStack(
                               context, "/bottomNavbar");
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Account created successfully! Welcome to KissanConnect."),
+                              backgroundColor: Colors.green,
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
                         }
                       } catch (e) {
                         if (mounted) {
@@ -240,6 +262,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
           ),
         ),
       ),
-    );
+    ));
   }
 }
+

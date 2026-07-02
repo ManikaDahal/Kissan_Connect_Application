@@ -132,3 +132,13 @@ class SellerProfile(models.Model):
 
     def __str__(self):
         return f"{self.shop_name} ({self.user.email})"
+
+
+class SupportTicket(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='support_tickets')
+    message = models.TextField()
+    is_resolved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Ticket #{self.id} from {self.user.email}"

@@ -23,6 +23,9 @@ class AppTheme {
       onSurface: textDark,
       onBackground: textDark,
     ),
+    actionIconTheme: ActionIconThemeData(
+      backButtonIconBuilder: (BuildContext context) => const Icon(Icons.arrow_back_ios_new),
+    ),
     textTheme: GoogleFonts.outfitTextTheme().copyWith(
       displayLarge: GoogleFonts.outfit(
         fontSize: 32,

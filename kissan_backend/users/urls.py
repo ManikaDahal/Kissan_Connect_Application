@@ -5,7 +5,7 @@ from .views import (
     LoginView, LogoutView, GoogleLoginView,
     ForgotPasswordView, VerifyResetOTPView, ResetPasswordView,
     ChangePasswordView, ProfileView, BiometricTokenRefreshView,
-    SellerApplyView, SellerStatusView,
+    SellerApplyView, SellerStatusView, SupportTicketView,
 )
 
 urlpatterns = [
@@ -29,6 +29,9 @@ urlpatterns = [
     # Seller Onboarding
     path('seller/apply/',     SellerApplyView.as_view(),     name='seller-apply'),
     path('seller/status/',    SellerStatusView.as_view(),    name='seller-status'),
+    
+    # Customer Support Ticket
+    path('support/ticket/',   SupportTicketView.as_view(),   name='support-ticket'),
 ]
 
 from rest_framework.routers import DefaultRouter

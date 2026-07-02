@@ -22,6 +22,13 @@ class OrderItemAdmin(admin.ModelAdmin):
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
-    list_display = ('order', 'seller', 'gross_amount', 'commission_amount', 'net_payout', 'status', 'created_at')
+    list_display = ('id', 'order', 'seller_email', 'gross_amount', 'commission_amount', 'net_payout', 'status', 'created_at')
     list_filter = ('status', 'created_at')
     search_fields = ('seller__email', 'order__id')
+    list_editable = ('status',)
+    readonly_fields = ('order', 'seller', 'gross_amount', 'commission_amount', 'net_payout', 'created_at')
+    ordering = ('-created_at',)
+
+    def seller_email(self, obj):
+        return obj.seller.email
+    seller_email.short_description = 'Seller Email'

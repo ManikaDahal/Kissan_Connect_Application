@@ -1,6 +1,6 @@
 from rest_framework import generics, permissions, filters, viewsets
-from .models import Category, Product, Review
-from .serializers import CategorySerializer, ProductSerializer, ProductListSerializer, ReviewSerializer
+from .models import Category, Product, Review, CategorySuggestion
+from .serializers import CategorySerializer, ProductSerializer, ProductListSerializer, ReviewSerializer, CategorySuggestionSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from users.permissions import IsSeller, IsProductOwner
 from rest_framework.decorators import action
@@ -25,10 +25,23 @@ class ProductListCreateView(generics.ListCreateAPIView):
     ordering_fields = ['price', 'created_at', 'name']
 
     def get_queryset(self):
-        return Product.objects.select_related('category').all()
+        return Product.objects.select_related(
+            'category',
+            'seller',
+            'seller__seller_profile'
+        ).prefetch_related(
+            'reviews'
+        ).all()
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Product.objects.select_related('category').prefetch_related('reviews__user')
+    queryset = Product.objects.select_related(
+        'category',
+        'seller',
+        'seller__seller_profile'
+    ).prefetch_related(
+        'reviews',
+        'reviews__user'
+    )
     serializer_class = ProductSerializer
     permission_classes = [permissions.AllowAny]
 
@@ -51,7 +64,14 @@ class SellerProductViewSet(viewsets.ModelViewSet):
     permission_classes = [IsSeller, IsProductOwner]
 
     def get_queryset(self):
-        return Product.objects.filter(seller=self.request.user)
+        return Product.objects.filter(seller=self.request.user).select_related(
+            'category',
+            'seller',
+            'seller__seller_profile'
+        ).prefetch_related(
+            'reviews',
+            'reviews__user'
+        )
 
     def perform_create(self, serializer):
         serializer.save(seller=self.request.user)
@@ -66,3 +86,26 @@ class SellerProductViewSet(viewsets.ModelViewSet):
             product.save()
             return Response({'status': 'stock updated', 'new_stock': product.stock})
         return Response({'error': 'Stock value required'}, status=400)
+
+    @action(detail=True, methods=['patch'], url_path='update-price')
+    def update_price(self, request, pk=None):
+        """Quickly update the price of a product."""
+        product = self.get_object()
+        new_price = request.data.get('price')
+        if new_price is not None:
+            product.price = new_price
+            product.save()
+            return Response({'status': 'price updated', 'new_price': str(product.price)})
+        return Response({'error': 'Price value required'}, status=400)
+
+
+class CategorySuggestionViewSet(viewsets.ModelViewSet):
+    """ViewSet for sellers to submit and track their category suggestions."""
+    serializer_class = CategorySuggestionSerializer
+    permission_classes = [permissions.IsAuthenticated, IsSeller]
+
+    def get_queryset(self):
+        return CategorySuggestion.objects.filter(seller=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(seller=self.request.user)

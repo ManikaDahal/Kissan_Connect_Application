@@ -62,18 +62,27 @@ class _AddressBookScreenState extends State<AddressBookScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text("My Addresses"),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          "My Addresses",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
+        centerTitle: true,
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Colors.green))
           : addresses.isEmpty
               ? _buildEmptyState()
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   itemCount: addresses.length,
                   itemBuilder: (context, index) {
                     final address = addresses[index];
@@ -88,7 +97,10 @@ class _AddressBookScreenState extends State<AddressBookScreen> {
           );
           if (result == true) _fetchAddresses();
         },
-        label: const Text("Add New Address"),
+        label: const Text(
+          "Add New Address",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         icon: const Icon(Icons.add),
         backgroundColor: Colors.green,
       ),
@@ -99,12 +111,25 @@ class _AddressBookScreenState extends State<AddressBookScreen> {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.location_off_outlined, size: 80, color: Colors.grey[300]),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.05),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.location_off_outlined, size: 64, color: Colors.green.shade200),
+          ),
           const SizedBox(height: 16),
+          const Text(
+            "No Saved Addresses",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+          ),
+          const SizedBox(height: 6),
           Text(
-            "No addresses saved yet",
-            style: TextStyle(color: Colors.grey[600], fontSize: 16),
+            "Add a shipping address to place orders.",
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
           ),
         ],
       ),
@@ -112,63 +137,114 @@ class _AddressBookScreenState extends State<AddressBookScreen> {
   }
 
   Widget _buildAddressCard(UserAddress address) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: address.isDefault ? Colors.green : Colors.transparent,
-          width: 2,
+    final isDefault = address.isDefault;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDefault ? Colors.green : Colors.grey.shade200,
+          width: isDefault ? 2 : 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: InkWell(
         onTap: widget.selectMode ? () => Navigator.pop(context, address) : null,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Text(
-                    address.fullName,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+              // Pin Avatar Indicator
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: (isDefault ? Colors.green : Colors.grey).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.location_on_rounded,
+                  color: isDefault ? Colors.green : Colors.grey.shade600,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              // Address Details Column
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            address.fullName,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (isDefault)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.green.shade200),
+                            ),
+                            child: Text(
+                              "Default",
+                              style: TextStyle(
+                                color: Colors.green.shade800,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                  ),
-                  const Spacer(),
-                  if (address.isDefault)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text(
-                        "Default",
-                        style: TextStyle(color: Colors.green, fontSize: 12),
+                    const SizedBox(height: 6),
+                    Text(
+                      address.phoneNumber,
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "${address.houseNo != null && address.houseNo!.isNotEmpty ? '${address.houseNo}, ' : ''}${address.area}, ${address.city}",
+                      style: const TextStyle(fontSize: 14, color: Colors.black54, height: 1.3),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "${address.province} Province",
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 8),
-              Text(address.phoneNumber, style: const TextStyle(color: Colors.grey)),
-              const SizedBox(height: 4),
-              Text(
-                "${address.houseNo != null ? '${address.houseNo}, ' : ''}${address.area}, ${address.city}",
-                style: const TextStyle(fontSize: 15),
-              ),
-              Text(
-                "${address.province} Province",
-                style: const TextStyle(fontSize: 15),
-              ),
-              const Divider(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              const SizedBox(width: 8),
+              // Compact Actions on the Right
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  TextButton.icon(
+                  IconButton(
+                    icon: Icon(Icons.edit_outlined, color: Colors.green.shade600, size: 22),
                     onPressed: () async {
                       final result = await Navigator.push(
                         context,
@@ -178,14 +254,35 @@ class _AddressBookScreenState extends State<AddressBookScreen> {
                       );
                       if (result == true) _fetchAddresses();
                     },
-                    icon: const Icon(Icons.edit_outlined, size: 20),
-                    label: const Text("Edit"),
+                    tooltip: "Edit Address",
                   ),
-                  const SizedBox(width: 8),
-                  TextButton.icon(
-                    onPressed: () => _deleteAddress(address.id!),
-                    icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                    label: const Text("Delete", style: TextStyle(color: Colors.red)),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 22),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text("Delete Address"),
+                          content: const Text("Are you sure you want to remove this address?"),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text("Cancel"),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _deleteAddress(address.id!);
+                              },
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                              child: const Text("Delete", style: TextStyle(color: Colors.white)),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    tooltip: "Delete Address",
                   ),
                 ],
               ),
