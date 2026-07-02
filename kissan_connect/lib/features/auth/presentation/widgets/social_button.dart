@@ -5,12 +5,14 @@ class SocialButton extends StatelessWidget {
   final String iconPath;
   final String label;
   final VoidCallback onPressed;
+  final bool isLoading;
 
   const SocialButton({
     super.key,
     required this.iconPath,
     required this.label,
     required this.onPressed,
+    this.isLoading = false,
   });
 
   @override
@@ -31,27 +33,39 @@ class SocialButton extends StatelessWidget {
         ],
       ),
       child: InkWell(
-        onTap: onPressed,
+        onTap: isLoading ? null : onPressed,
         borderRadius: BorderRadius.circular(16),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset(
-              iconPath,
-              height: 24,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: foregroundColor,
-              ),
-            ),
-          ],
+          children: isLoading
+              ? [
+                  const SizedBox(
+                    height: 22,
+                    width: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: primaryColor,
+                    ),
+                  ),
+                ]
+              : [
+                  Image.asset(
+                    iconPath,
+                    height: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: foregroundColor,
+                    ),
+                  ),
+                ],
         ),
       ),
     );
   }
 }
+

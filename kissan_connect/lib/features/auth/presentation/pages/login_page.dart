@@ -27,6 +27,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   bool _rememberMe = false;
 
   @override
@@ -253,8 +254,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     SocialButton(
                       iconPath: "assets/images/google_logo.png",
                       label: "Sign in with Google",
-                      onPressed: _isLoading ? () {} : () async {
-                        setState(() => _isLoading = true);
+                      isLoading: _isGoogleLoading,
+                      onPressed: (_isLoading || _isGoogleLoading) ? () {} : () async {
+                        setState(() => _isGoogleLoading = true);
                         try {
                           final GoogleSignIn googleSignIn = GoogleSignIn(
                             serverClientId: '344012641554-kuche2uqq1mtm411l6eq2bu5ueadm2dd.apps.googleusercontent.com',
@@ -280,7 +282,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           }
                         } finally {
                           if (mounted) {
-                            setState(() => _isLoading = false);
+                            setState(() => _isGoogleLoading = false);
                           }
                         }
                       },
