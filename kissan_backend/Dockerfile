@@ -23,8 +23,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project files
 COPY . /app/
 
-# Ensure the entrypoint is executable (must be done as root)
-RUN chmod +x /app/docker-entrypoint.sh
+# Ensure the entrypoint is executable and has Unix line endings (must be done as root)
+RUN sed -i 's/\r$//' /app/docker-entrypoint.sh && chmod +x /app/docker-entrypoint.sh
 
 # Create a non-root user (UID 1000 for Hugging Face) and give permissions
 RUN useradd -m -u 1000 user && \
