@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kissan_connect/core/providers/cart_provider.dart';
 import 'package:kissan_connect/core/providers/nav_provider.dart';
 import 'package:kissan_connect/core/utils/route_const.dart';
+import 'package:kissan_connect/services/api_service.dart';
 import 'package:kissan_connect/theme/app_theme.dart';
 import 'package:kissan_connect/widgets/custom_app_bar.dart';
 
@@ -126,8 +127,17 @@ class CartScreen extends ConsumerWidget {
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, Routes.checkoutRoute);
+                          onPressed: () async {
+                            final bool loggedIn = await ApiService.isLoggedIn();
+                            if (!loggedIn) {
+                              if (context.mounted) {
+                                _showAuthRequiredBottomSheet(context);
+                              }
+                            } else {
+                              if (context.mounted) {
+                                Navigator.pushNamed(context, Routes.checkoutRoute);
+                              }
+                            }
                           },
                           style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryGreen),
                           child: const Text("Proceed to Checkout", style: TextStyle(color: Colors.white, fontSize: 16)),
@@ -138,6 +148,122 @@ class CartScreen extends ConsumerWidget {
                 ),
               ],
             ),
+    );
+  }
+
+  void _showAuthRequiredBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Top drag handle
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Lock Icon with premium styling
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryGreen.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.lock_outline_rounded,
+                    size: 40,
+                    color: AppTheme.primaryGreen,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  "Login Required",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "You need to sign in or create an account to proceed to checkout and secure your order.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Login Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close bottom sheet
+                      Navigator.pushNamed(context, Routes.loginRoute);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryGreen,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      "Log In / Sign Up",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Continue Browsing Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close bottom sheet
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.grey, width: 1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      "Continue Browsing",
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -203,8 +203,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                     _passwordController.text.trim(),
                                   );
                               await _saveRememberMe();
-                              // Fetch cart in the background; do not block/await navigation
-                              ref.read(cartProvider.notifier).fetchCart();
+                              // Sync local cart to backend in the background; do not block/await navigation
+                              ref.read(cartProvider.notifier).syncCartOnLogin();
                               ref.read(navProvider.notifier).state = 0;
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -269,7 +269,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             
                             if (idToken != null) {
                               await ref.read(authRepositoryProvider).googleLogin(idToken);
-                              await ref.read(cartProvider.notifier).fetchCart();
+                              await ref.read(cartProvider.notifier).syncCartOnLogin();
                               ref.read(navProvider.notifier).state = 0;
                               if (mounted) {
                                 RouteGenerator.navigateToPageWithoutStack(context, "/bottomNavbar");
