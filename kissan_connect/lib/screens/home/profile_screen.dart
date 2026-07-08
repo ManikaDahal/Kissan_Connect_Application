@@ -16,6 +16,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool isLoading = true;
+  bool isGuest = false;
   String? userName;
   String? userEmail;
   String? errorMessage;
@@ -30,6 +31,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _fetchProfileData() async {
+    final bool loggedIn = await ApiService.isLoggedIn();
+    if (!loggedIn) {
+      if (mounted) {
+        setState(() {
+          isGuest = true;
+          isLoading = false;
+        });
+      }
+      return;
+    }
+
     try {
       final response = await ApiService.get('users/profile/');
       if (mounted) {
@@ -194,7 +206,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: const CustomAppBar(title: "Profile"),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+          : isGuest
+              ? _buildGuestView()
+              : SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -451,6 +465,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       trailing: const Icon(Icons.chevron_right, color: Colors.grey),
       onTap: onTap,
+    );
+  }
+
+  Widget _buildGuestView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.account_circle_outlined, size: 80, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text(
+              "Guest User",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Log in or sign up to view your profile, track orders, and manage settings.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey, fontSize: 16),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, Routes.loginRoute);
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                child: const Text("Log In / Sign Up", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

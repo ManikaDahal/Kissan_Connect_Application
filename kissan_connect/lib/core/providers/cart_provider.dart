@@ -41,6 +41,25 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
     }
   }
 
+  Future<void> syncCartOnLogin() async {
+    final localItems = [...state];
+    
+    // Push local items to backend
+    for (var localItem in localItems) {
+      try {
+        await ApiService.post('cart/add/', {
+          'product_id': localItem.product['id'],
+          'quantity': localItem.quantity,
+        });
+      } catch (e) {
+        debugPrint("Error syncing cart item: $e");
+      }
+    }
+    
+    // Now fetch the fully merged cart from backend
+    await fetchCart();
+  }
+
   Future<void> addToCart(dynamic product) async {
     final bool loggedIn = await ApiService.isLoggedIn();
     

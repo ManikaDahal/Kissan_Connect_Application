@@ -151,8 +151,8 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                               _emailController.text.trim(),
                               _passwordController.text.trim(),
                             );
-                        // Fetch cart in the background; do not block/await navigation
-                        ref.read(cartProvider.notifier).fetchCart();
+                        // Sync cart in the background; do not block/await navigation
+                        ref.read(cartProvider.notifier).syncCartOnLogin();
                         ref.read(navProvider.notifier).state = 0;
                         if (mounted) {
                           RouteGenerator.navigateToPageWithoutStack(
@@ -223,7 +223,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                         
                         if (idToken != null) {
                           await ref.read(authRepositoryProvider).googleLogin(idToken);
-                          await ref.read(cartProvider.notifier).fetchCart();
+                          await ref.read(cartProvider.notifier).syncCartOnLogin();
                           ref.read(navProvider.notifier).state = 0;
                           if (mounted) {
                             RouteGenerator.navigateToPageWithoutStack(context, "/bottomNavbar");

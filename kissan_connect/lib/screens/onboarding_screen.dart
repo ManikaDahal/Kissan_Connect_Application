@@ -106,14 +106,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         curve: Curves.easeInOut,
       );
     } else {
-      _goToSignup();
+      _goToHome();
     }
   }
 
-  void _skip() => _goToSignup();
+  void _skip() => _goToHome();
 
-  void _goToSignup() {
-    RouteGenerator.navigateToPageWithoutStack(context, Routes.signupRoute);
+  void _goToHome() {
+    RouteGenerator.navigateToPageWithoutStack(context, Routes.bottomNavBarRoute);
   }
 
   void _goToLogin() {
