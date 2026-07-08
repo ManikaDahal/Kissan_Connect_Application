@@ -23,9 +23,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project files
 COPY . /app/
 
-# Ensure the entrypoint is executable and has Unix line endings (must be done as root)
-RUN sed -i 's/\r$//' /app/docker-entrypoint.sh && chmod +x /app/docker-entrypoint.sh
-
 # Create a non-root user (UID 1000 for Hugging Face) and give permissions
 RUN useradd -m -u 1000 user && \
     chown -R user:user /app
@@ -34,5 +31,5 @@ USER user
 # Expose the port
 EXPOSE 7860
 
-# Run entrypoint script
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
+# Run migrations, collect static files, then start gunicorn
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && exec gunicorn kissan_core.wsgi:application --bind 0.0.0.0:7860 --workers 2 --timeout 120 --access-logfile -"]
