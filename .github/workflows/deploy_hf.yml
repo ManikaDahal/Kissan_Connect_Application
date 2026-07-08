@@ -18,13 +18,15 @@ jobs:
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-          git lfs install
 
-          # Copy backend into a temp folder and push directly
+          # Copy backend into a temp folder
           cp -r kissan_backend /tmp/hf_deploy
           cd /tmp/hf_deploy
+
+          # Fix line endings on the entrypoint script (CRLF -> LF)
+          sed -i 's/\r$//' docker-entrypoint.sh
 
           git init
           git add .
           git commit -m "Deploy: ${{ github.sha }}"
-          git push https://manika051:$HF_TOKEN@huggingface.co/spaces/manika051/kissanconnect HEAD:main --force
+          git push https://manika051:$HF_TOKEN@huggingface.co/spaces/manika051/KissanConnect HEAD:main --force
