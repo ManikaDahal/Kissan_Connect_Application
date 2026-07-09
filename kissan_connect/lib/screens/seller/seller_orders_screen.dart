@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:kissan_connect/services/api_service.dart';
+import 'package:kissan_connect/widgets/shimmer_loading.dart';
 
 class SellerOrdersScreen extends StatefulWidget {
   const SellerOrdersScreen({super.key});
@@ -132,7 +133,7 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32)))
+          ? const SellerOrdersShimmer()
           : _orders.isEmpty
               ? _buildEmptyState()
               : RefreshIndicator(

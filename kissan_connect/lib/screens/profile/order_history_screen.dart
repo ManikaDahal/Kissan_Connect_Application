@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kissan_connect/core/models/order_model.dart';
 import 'package:kissan_connect/services/api_service.dart';
 import 'package:intl/intl.dart';
+import 'package:kissan_connect/widgets/shimmer_loading.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
   const OrderHistoryScreen({super.key});
@@ -57,7 +58,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
         foregroundColor: Colors.black,
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32)))
+          ? const OrderListShimmer()
           : orders.isEmpty
               ? _buildEmptyState()
               : RefreshIndicator(

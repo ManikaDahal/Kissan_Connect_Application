@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kissan_connect/core/providers/nav_provider.dart';
 import 'package:kissan_connect/widgets/product_card.dart';
+import 'package:kissan_connect/widgets/shimmer_loading.dart';
 import '../../theme/app_theme.dart';
 import '../../services/api_service.dart';
 import 'package:kissan_connect/widgets/custom_app_bar.dart';
@@ -33,8 +34,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _loadCachedData();
-    _fetchData(isSilent: true);
+    _initData();
+  }
+
+  /// Loads cache first, then decides whether to show shimmer or do a silent refresh.
+  Future<void> _initData() async {
+    await _loadCachedData();
+    // If cache gave us products, do a quiet background refresh (no shimmer).
+    // If cache was empty, do a normal fetch so _isLoading=true triggers the shimmer.
+    if (_allProducts.isNotEmpty) {
+      _fetchData(isSilent: true);
+    } else {
+      _fetchData();
+    }
   }
 
   @override
@@ -194,7 +206,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         ],
       ),
       body: _isLoading 
-        ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen))
+        ? const HomeScreenShimmer()
         : RefreshIndicator(
             onRefresh: () => _fetchData(isRefresh: true),
             child: SingleChildScrollView(

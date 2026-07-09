@@ -4,6 +4,7 @@ import 'package:kissan_connect/widgets/custom_app_bar.dart';
 import 'add_product_screen.dart';
 import 'seller_orders_screen.dart';
 import 'seller_earnings_screen.dart';
+import 'package:kissan_connect/widgets/shimmer_loading.dart';
 
 class SellerDashboardScreen extends StatefulWidget {
   const SellerDashboardScreen({super.key});
@@ -202,7 +203,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
       
         title: "Seller Hub"),
       body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
+        ? const SellerDashboardShimmer()
         : RefreshIndicator(
             onRefresh: _fetchMyProducts,
             child: SingleChildScrollView(

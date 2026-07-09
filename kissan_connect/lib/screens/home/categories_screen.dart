@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kissan_connect/screens/home/category_products_screen.dart';
 import 'package:kissan_connect/services/api_service.dart';
 import 'package:kissan_connect/widgets/custom_app_bar.dart';
+import 'package:kissan_connect/widgets/shimmer_loading.dart';
 
 class CategoriesScreen extends StatefulWidget {
   const CategoriesScreen({super.key});
@@ -41,7 +42,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     return Scaffold(
       appBar: const CustomAppBar(title: "All Categories"),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const CategoriesScreenShimmer()
           : GridView.builder(
               padding: const EdgeInsets.all(16),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

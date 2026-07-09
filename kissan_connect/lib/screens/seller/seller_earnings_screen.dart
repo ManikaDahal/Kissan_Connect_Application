@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kissan_connect/services/api_service.dart';
 import 'package:kissan_connect/widgets/custom_app_bar.dart';
+import 'package:kissan_connect/widgets/shimmer_loading.dart';
 
 class SellerEarningsScreen extends StatefulWidget {
   const SellerEarningsScreen({super.key});
@@ -45,7 +46,7 @@ class _SellerEarningsScreenState extends State<SellerEarningsScreen> {
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: const CustomAppBar(title: 'My Earnings'),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32)))
+          ? const SellerEarningsShimmer()
           : _error != null
               ? Center(
                   child: Column(

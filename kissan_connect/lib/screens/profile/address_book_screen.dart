@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kissan_connect/core/models/address_model.dart';
 import 'package:kissan_connect/services/api_service.dart';
+import 'package:kissan_connect/widgets/shimmer_loading.dart';
 import 'add_address_screen.dart';
 
 class AddressBookScreen extends StatefulWidget {
@@ -78,7 +79,7 @@ class _AddressBookScreenState extends State<AddressBookScreen> {
         centerTitle: true,
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.green))
+          ? const AddressListShimmer()
           : addresses.isEmpty
               ? _buildEmptyState()
               : ListView.builder(

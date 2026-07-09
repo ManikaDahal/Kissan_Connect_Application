@@ -6,6 +6,7 @@ import 'package:kissan_connect/screens/profile/order_history_screen.dart';
 import 'package:kissan_connect/screens/profile/address_book_screen.dart';
 import 'package:kissan_connect/screens/profile/seller_registration_screen.dart';
 import 'package:kissan_connect/screens/seller/seller_dashboard_screen.dart';
+import 'package:kissan_connect/widgets/shimmer_loading.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -205,7 +206,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: const CustomAppBar(title: "Profile"),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ProfileScreenShimmer()
           : isGuest
               ? _buildGuestView()
               : SingleChildScrollView(

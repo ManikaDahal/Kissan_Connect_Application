@@ -4,6 +4,7 @@ import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/product_card.dart';
+import '../../widgets/shimmer_loading.dart';
 
 class CategoryProductsScreen extends StatefulWidget {
   final int categoryId;
@@ -151,7 +152,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
           ),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen))
+                ? const CategoryGridShimmer()
                 : _products.isEmpty
                     ? Center(
                         child: Column(
