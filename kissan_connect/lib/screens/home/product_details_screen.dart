@@ -22,6 +22,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
   bool _isSubmittingReview = false;
   final TextEditingController _reviewController = TextEditingController();
   double _selectedRating = 5.0;
+  int? _currentUserId;
 
   @override
   void initState() {
@@ -34,6 +35,23 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
     });
     _fetchProductDetails();
     _fetchSimilarProducts();
+    _fetchUserProfile();
+  }
+
+  Future<void> _fetchUserProfile() async {
+    try {
+      final loggedIn = await ApiService.isLoggedIn();
+      if (loggedIn) {
+        final profile = await ApiService.get('users/profile/');
+        if (mounted) {
+          setState(() {
+            _currentUserId = profile['id'];
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching user profile: $e");
+    }
   }
 
   Future<void> _fetchProductDetails() async {
@@ -281,32 +299,55 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
                   BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5)),
                 ],
               ),
-              child: ElevatedButton(
-                onPressed: stock <= 0
-                    ? null
-                    : () {
-                        ref.read(cartProvider.notifier).addToCart(product);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("${product['name']} added to cart!")),
-                        );
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: stock <= 0 ? Colors.grey : AppTheme.primaryGreen,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(stock <= 0 ? "Out of Stock" : "Add to Cart", style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
-                    if (stock > 0) ...[
-                      const SizedBox(width: 8),
-                      Text("|", style: TextStyle(color: Colors.white.withOpacity(0.5))),
-                      const SizedBox(width: 8),
-                      Text("Rs. $price", style: const TextStyle(fontSize: 18, color: Colors.white)),
-                    ],
-                  ],
-                ),
+              child: Builder(
+                builder: (context) {
+                  final isOwnProduct = _currentUserId != null && _currentUserId == product['seller'];
+                  return ElevatedButton(
+                    onPressed: stock <= 0 || isOwnProduct
+                        ? null
+                        : () async {
+                            try {
+                              await ref.read(cartProvider.notifier).addToCart(product);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("${product['name']} added to cart!")),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(e.toString().replaceAll("Exception: ", "")),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: stock <= 0 || isOwnProduct ? Colors.grey : AppTheme.primaryGreen,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          isOwnProduct
+                              ? "Your Own Product"
+                              : (stock <= 0 ? "Out of Stock" : "Add to Cart"),
+                          style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                        if (stock > 0 && !isOwnProduct) ...[
+                          const SizedBox(width: 8),
+                          Text("|", style: TextStyle(color: Colors.white.withOpacity(0.5))),
+                          const SizedBox(width: 8),
+                          Text("Rs. $price", style: const TextStyle(fontSize: 18, color: Colors.white)),
+                        ],
+                      ],
+                    ),
+                  );
+                }
               ),
             ),
           ),
@@ -484,6 +525,21 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
   }
 
   Widget _buildReviewForm() {
+    final product = _currentProduct;
+    final isOwnProduct = _currentUserId != null && _currentUserId == product['seller'];
+
+    if (isOwnProduct) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: Text(
+            "You cannot review your own product.",
+            style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic, fontSize: 15),
+          ),
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.only(top: 8),
       child: Column(

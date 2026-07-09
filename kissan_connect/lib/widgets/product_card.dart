@@ -101,15 +101,29 @@ class ProductCard extends ConsumerWidget {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () {
-                          ref.read(cartProvider.notifier).addToCart(product);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text("${product['name'] ?? 'Product'} added to cart"),
-                              backgroundColor: AppTheme.primaryGreen,
-                              duration: const Duration(milliseconds: 700),
-                            ),
-                          );
+                        onTap: () async {
+                          try {
+                            await ref.read(cartProvider.notifier).addToCart(product);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text("${product['name'] ?? 'Product'} added to cart"),
+                                  backgroundColor: AppTheme.primaryGreen,
+                                  duration: const Duration(milliseconds: 700),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(e.toString().replaceAll("Exception: ", "")),
+                                  backgroundColor: Colors.red,
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          }
                         },
                         child: Container(
                           padding: const EdgeInsets.all(4),

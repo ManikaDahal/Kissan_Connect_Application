@@ -55,6 +55,10 @@ class ReviewListCreateView(generics.ListCreateAPIView):
         return [permissions.IsAuthenticated()]
 
     def perform_create(self, serializer):
+        product = serializer.validated_data.get('product')
+        if product and product.seller == self.request.user:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError("You cannot review your own product.")
         serializer.save(user=self.request.user)
 
 

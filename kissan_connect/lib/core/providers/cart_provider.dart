@@ -63,6 +63,9 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
   Future<void> addToCart(dynamic product) async {
     final bool loggedIn = await ApiService.isLoggedIn();
     
+    // Save old state for potential rollback
+    final oldState = [...state];
+    
     // Optimistic Update
     final index = state.indexWhere((item) => item.product['id'] == product['id']);
     if (index != -1) {
@@ -80,6 +83,8 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
         });
       } catch (e) {
         debugPrint("Error adding to persistent cart: $e");
+        state = oldState;
+        rethrow;
       }
     }
   }

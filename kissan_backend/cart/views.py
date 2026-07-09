@@ -30,6 +30,9 @@ class AddToCartView(views.APIView):
         except Product.DoesNotExist:
             return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
             
+        if product.seller == request.user:
+            return Response({'error': 'Sellers cannot buy their own products.'}, status=status.HTTP_400_BAD_REQUEST)
+            
         cart, _ = Cart.objects.get_or_create(user=self.request.user)
         cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
         
@@ -49,6 +52,13 @@ class UpdateCartItemView(views.APIView):
         product_id = request.data.get('product_id')
         quantity = int(request.data.get('quantity'))
         
+        try:
+            product = Product.objects.get(id=product_id)
+            if product.seller == request.user:
+                return Response({'error': 'Sellers cannot buy their own products.'}, status=status.HTTP_400_BAD_REQUEST)
+        except Product.DoesNotExist:
+            return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+            
         if quantity <= 0:
             cart = Cart.objects.get(user=self.request.user)
             CartItem.objects.filter(cart=cart, product_id=product_id).delete()

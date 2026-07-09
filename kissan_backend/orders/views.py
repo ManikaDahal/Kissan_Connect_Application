@@ -80,6 +80,13 @@ class OrderViewSet(viewsets.ModelViewSet):
                 product = Product.objects.get(id=item['product'])
                 qty = item['quantity']
 
+                # Prevent buying own products
+                if product.seller == request.user:
+                    return Response(
+                        {'error': f"You cannot purchase your own product '{product.name}'."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
                 #  Stock validation — reject order if not enough stock
                 if product.stock < qty:
                     return Response(
