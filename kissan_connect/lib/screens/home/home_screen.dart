@@ -10,6 +10,7 @@ import '../../theme/app_theme.dart';
 import '../../services/api_service.dart';
 import 'package:kissan_connect/widgets/custom_app_bar.dart';
 import 'package:kissan_connect/widgets/weather_card.dart';
+import 'search_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -229,32 +230,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                       ],
                     ),
                     child: TextField(
-                      controller: _searchController,
-                      onChanged: (v) {
-                        _searchQuery = v;
-                        if (_debounce?.isActive ?? false) _debounce!.cancel();
-                        _debounce = Timer(const Duration(milliseconds: 500), () {
-                          _fetchData(isSearch: true);
-                        });
-                        setState(() {}); // For clear icon visibility
+                      readOnly: true,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SearchScreen(),
+                          ),
+                        );
                       },
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         hintText: "Search fresh products...",
-                        prefixIcon: const Icon(Icons.search, color: AppTheme.primaryGreen),
-                        suffixIcon: _searchQuery.isNotEmpty 
-                          ? IconButton(
-                              icon: const Icon(Icons.clear, color: Colors.grey),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() {
-                                  _searchQuery = '';
-                                });
-                                _fetchData(isSearch: true);
-                              },
-                            )
-                          : null,
+                        prefixIcon: Icon(Icons.search, color: AppTheme.primaryGreen),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                        contentPadding: EdgeInsets.symmetric(vertical: 15),
                       ),
                     ),
                   ),
