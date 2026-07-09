@@ -43,10 +43,22 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'seller', 'category', 'price', 'stock', 'weight', 'unit_type', 'is_famous', 'created_at')
+    list_display = ('name', 'seller', 'category', 'price', 'stock', 'approval_status', 'is_famous', 'created_at')
     search_fields = ('name', 'description', 'seller__email')
-    list_filter = ('category', 'is_famous', 'seller')
-    list_editable = ('is_famous', 'stock', 'weight', 'unit_type')
+    list_filter = ('approval_status', 'category', 'is_famous', 'seller')
+    list_editable = ('is_famous', 'stock', 'approval_status')
+    readonly_fields = ('created_at', 'updated_at')
+    actions = ['approve_products', 'reject_products']
+
+    def approve_products(self, request, queryset):
+        updated = queryset.update(approval_status='approved', admin_note='')
+        self.message_user(request, f"{updated} product(s) approved and are now visible to buyers.")
+    approve_products.short_description = "✅ Approve selected products"
+
+    def reject_products(self, request, queryset):
+        updated = queryset.update(approval_status='rejected')
+        self.message_user(request, f"{updated} product(s) rejected. Add an admin_note on each to inform the seller.")
+    reject_products.short_description = "❌ Reject selected products"
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):

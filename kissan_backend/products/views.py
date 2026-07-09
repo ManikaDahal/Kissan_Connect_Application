@@ -31,7 +31,7 @@ class ProductListCreateView(generics.ListCreateAPIView):
             'seller__seller_profile'
         ).prefetch_related(
             'reviews'
-        ).all()
+        ).filter(approval_status='approved')
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Product.objects.select_related(

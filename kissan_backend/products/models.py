@@ -45,6 +45,21 @@ class Product(models.Model):
     )
     image = CloudinaryField('image', null=True, blank=True)
     is_famous = models.BooleanField(default=False)
+
+    APPROVAL_STATUS_CHOICES = [
+        ('pending',  'Pending Review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    approval_status = models.CharField(
+        max_length=15, choices=APPROVAL_STATUS_CHOICES, default='pending',
+        help_text="Admin must approve before the product is visible to buyers."
+    )
+    admin_note = models.TextField(
+        blank=True, null=True,
+        help_text="Optional feedback shown to the seller on rejection."
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

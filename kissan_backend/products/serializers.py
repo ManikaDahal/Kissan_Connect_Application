@@ -39,6 +39,7 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'name', 'category', 'category_name', 'description',
             'price', 'stock', 'weight', 'unit_type', 'image', 'is_famous',
+            'approval_status', 'admin_note',
             'created_at', 'reviews', 'average_rating', 'total_reviews',
             'seller', 'seller_name', 'shop_name', 'shop_address',
         )
@@ -70,6 +71,7 @@ class ProductListSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'name', 'category', 'category_name', 'description',
             'price', 'stock', 'weight', 'unit_type', 'image', 'is_famous',
+            'approval_status', 'admin_note',
             'created_at', 'average_rating', 'total_reviews', 'shop_name', 'shop_address',
         )
 

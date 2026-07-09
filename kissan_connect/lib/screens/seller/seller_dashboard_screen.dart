@@ -377,48 +377,111 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
   }
 
   Widget _buildProductCard(dynamic product) {
+    final status = product['approval_status'] ?? 'pending';
+    final adminNote = product['admin_note'];
+
+    Color statusColor;
+    IconData statusIcon;
+    String statusLabel;
+    switch (status) {
+      case 'approved':
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle_outline;
+        statusLabel = 'Approved';
+        break;
+      case 'rejected':
+        statusColor = Colors.red;
+        statusIcon = Icons.cancel_outlined;
+        statusLabel = 'Rejected';
+        break;
+      default:
+        statusColor = Colors.orange;
+        statusIcon = Icons.access_time;
+        statusLabel = 'Pending Review';
+    }
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.network(
-            product['image'] ?? 'https://via.placeholder.com/150',
-            width: 60, height: 60, fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey, width: 60, height: 60, child: const Icon(Icons.image_not_supported)),
+      child: Column(
+        children: [
+          ListTile(
+            contentPadding: const EdgeInsets.all(12),
+            leading: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                product['image'] ?? 'https://via.placeholder.com/150',
+                width: 60, height: 60, fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey, width: 60, height: 60, child: const Icon(Icons.image_not_supported)),
+              ),
+            ),
+            title: Text(product['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Price: Rs. ${product['price']}"),
+                Text("Store: ${product['shop_name'] ?? 'Your Shop'}", style: const TextStyle(color: Colors.blue, fontSize: 12)),
+                const SizedBox(height: 4),
+                Text("Stock: ${product['stock']} units", style: TextStyle(color: (product['stock'] ?? 0) < 5 ? Colors.red : Colors.green)),
+                const SizedBox(height: 6),
+                // Approval status badge
+                Row(
+                  children: [
+                    Icon(statusIcon, color: statusColor, size: 14),
+                    const SizedBox(width: 4),
+                    Text(statusLabel, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ],
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+                  onPressed: () {
+                    final price = double.tryParse(product['price'].toString()) ?? 0.0;
+                    final stock = (product['stock'] ?? 0) as int;
+                    _editProduct(product['id'], price, stock);
+                  },
+                  tooltip: "Edit Price & Stock",
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  onPressed: () => _deleteProduct(product['id'], product['name']),
+                  tooltip: "Delete Product",
+                ),
+              ],
+            ),
           ),
-        ),
-        title: Text(product['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Price: Rs. ${product['price']}"),
-            Text("Store: ${product['shop_name'] ?? 'Your Shop'}", style: const TextStyle(color: Colors.blue, fontSize: 12)),
-            const SizedBox(height: 4),
-            Text("Stock: ${product['stock']} units", style: TextStyle(color: (product['stock'] ?? 0) < 5 ? Colors.red : Colors.green)),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.edit_outlined, color: Colors.blue),
-              onPressed: () {
-                final price = double.tryParse(product['price'].toString()) ?? 0.0;
-                final stock = (product['stock'] ?? 0) as int;
-                _editProduct(product['id'], price, stock);
-              },
-              tooltip: "Edit Price & Stock",
+          // Show admin rejection note if rejected
+          if (status == 'rejected' && adminNote != null && adminNote.toString().isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.red.shade700, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "Admin note: $adminNote",
+                        style: TextStyle(color: Colors.red.shade800, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
-              onPressed: () => _deleteProduct(product['id'], product['name']),
-              tooltip: "Delete Product",
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
