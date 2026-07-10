@@ -15,6 +15,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
   final _priceController = TextEditingController();
+  final _discountPriceController = TextEditingController();
   final _stockController = TextEditingController();
   final _weightController = TextEditingController();
 
@@ -153,6 +154,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
         'name': _nameController.text,
         'description': _descController.text,
         'price': _priceController.text,
+        if (_discountPriceController.text.isNotEmpty)
+          'discount_price': _discountPriceController.text,
         'stock': _stockController.text,
         'weight': _weightController.text,
         'category': _selectedCategory!,
@@ -316,6 +319,34 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _discountPriceController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        labelText: "Discount Price (Optional) (Rs.)",
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.clear, color: Colors.grey),
+                          onPressed: () {
+                            _discountPriceController.clear();
+                          },
+                          tooltip: "Remove Discount",
+                        ),
+                      ),
+                      validator: (v) {
+                        if (v != null && v.isNotEmpty) {
+                          final val = double.tryParse(v);
+                          if (val == null) return "Enter a valid price";
+                          if (val <= 0) return "Discount price must be greater than zero";
+                          final normalPrice = double.tryParse(_priceController.text);
+                          if (normalPrice != null && val >= normalPrice) {
+                            return "Discount price must be less than normal price";
+                          }
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
                     TextFormField(

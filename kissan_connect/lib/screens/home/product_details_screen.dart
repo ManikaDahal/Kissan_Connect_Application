@@ -342,7 +342,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
                           const SizedBox(width: 8),
                           Text("|", style: TextStyle(color: Colors.white.withOpacity(0.5))),
                           const SizedBox(width: 8),
-                          Text("Rs. $price", style: const TextStyle(fontSize: 18, color: Colors.white)),
+                          Text("Rs. ${product['discount_price'] ?? price}", style: const TextStyle(fontSize: 18, color: Colors.white)),
                         ],
                       ],
                     ),
@@ -369,9 +369,33 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
                 style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ),
-            Text(
-              "Rs. ${product['price']}",
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
+            Builder(
+              builder: (context) {
+                final discountPrice = product['discount_price'];
+                if (discountPrice != null) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        "Rs. $discountPrice",
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
+                      ),
+                      Text(
+                        "Rs. ${product['price']}",
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                          decoration: TextDecoration.lineThrough,
+                        ),
+                      ),
+                    ],
+                  );
+                }
+                return Text(
+                  "Rs. ${product['price']}",
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
+                );
+              }
             ),
           ],
         ),

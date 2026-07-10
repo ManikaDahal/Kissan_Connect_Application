@@ -38,11 +38,25 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = (
             'id', 'name', 'category', 'category_name', 'description',
-            'price', 'stock', 'weight', 'unit_type', 'image', 'is_famous',
+            'price', 'discount_price', 'stock', 'weight', 'unit_type', 'image', 'is_famous',
             'approval_status', 'admin_note',
             'created_at', 'reviews', 'average_rating', 'total_reviews',
             'seller', 'seller_name', 'shop_name', 'shop_address',
         )
+
+    def validate(self, data):
+        price = data.get('price')
+        discount_price = data.get('discount_price')
+
+        if price is None and self.instance:
+            price = self.instance.price
+
+        if 'discount_price' in data and discount_price is not None:
+            if price is not None and discount_price >= price:
+                raise serializers.ValidationError({"discount_price": "Discount price must be less than original price."})
+            if discount_price <= 0:
+                raise serializers.ValidationError({"discount_price": "Discount price must be greater than zero."})
+        return data
 
     def get_category_name(self, obj):
         return obj.category.name if obj.category else "Uncategorized"
@@ -70,7 +84,7 @@ class ProductListSerializer(serializers.ModelSerializer):
         model = Product
         fields = (
             'id', 'name', 'category', 'category_name', 'description',
-            'price', 'stock', 'weight', 'unit_type', 'image', 'is_famous',
+            'price', 'discount_price', 'stock', 'weight', 'unit_type', 'image', 'is_famous',
             'approval_status', 'admin_note',
             'created_at', 'average_rating', 'total_reviews', 'shop_name', 'shop_address',
         )

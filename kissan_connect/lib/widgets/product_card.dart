@@ -67,8 +67,26 @@ class ProductCard extends ConsumerWidget {
                           )
                         : const Icon(Icons.shopping_bag, size: 40, color: Colors.grey),
                   ),
-                  // No favorite icon here as requested
-
+                  if (product['discount_price'] != null)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          "${(((double.parse(product['price'].toString()) - double.parse(product['discount_price'].toString())) / double.parse(product['price'].toString())) * 100).round()}% OFF",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -92,12 +110,42 @@ class ProductCard extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        "Rs. ${product['price']}",
-                        style: const TextStyle(
-                          color: AppTheme.primaryGreen,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                      Expanded(
+                        child: Builder(
+                          builder: (context) {
+                            final discountPrice = product['discount_price'];
+                            if (discountPrice != null) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Rs. $discountPrice",
+                                    style: const TextStyle(
+                                      color: AppTheme.primaryGreen,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  Text(
+                                    "Rs. ${product['price']}",
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      decoration: TextDecoration.lineThrough,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+                            return Text(
+                              "Rs. ${product['price']}",
+                              style: const TextStyle(
+                                color: AppTheme.primaryGreen,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            );
+                          }
                         ),
                       ),
                       GestureDetector(

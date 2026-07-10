@@ -147,7 +147,13 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
   }
 
   double get totalAmount {
-    return state.fold(0, (sum, item) => sum + (double.parse(item.product['price'].toString()) * item.quantity));
+    return state.fold(0, (sum, item) {
+      final product = item.product;
+      final price = product['discount_price'] != null
+          ? double.parse(product['discount_price'].toString())
+          : double.parse(product['price'].toString());
+      return sum + (price * item.quantity);
+    });
   }
 }
 

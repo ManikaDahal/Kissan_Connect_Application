@@ -45,6 +45,10 @@ class Product(models.Model):
     )
     image = CloudinaryField('image', null=True, blank=True)
     is_famous = models.BooleanField(default=False)
+    discount_price = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text="Optional discounted price. If set, this price will be used instead of the normal price."
+    )
 
     APPROVAL_STATUS_CHOICES = [
         ('pending',  'Pending Review'),

@@ -102,8 +102,9 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
     } catch (_) {}
   }
 
-  Future<void> _editProduct(int productId, double currentPrice, int currentStock) async {
+  Future<void> _editProduct(int productId, double currentPrice, int currentStock, double? currentDiscountPrice) async {
     final priceController = TextEditingController(text: currentPrice.toString());
+    final discountPriceController = TextEditingController(text: currentDiscountPrice?.toString() ?? '');
     final stockController = TextEditingController(text: currentStock.toString());
     final formKey = GlobalKey<FormState>();
     
@@ -128,6 +129,35 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                 validator: (v) {
                   if (v == null || v.isEmpty) return "Required";
                   if (double.tryParse(v) == null) return "Enter a valid price";
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: discountPriceController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: "Discount Price (Optional) (Rs.)",
+                  border: const OutlineInputBorder(),
+                  prefixText: "Rs. ",
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.clear, color: Colors.grey),
+                    onPressed: () {
+                      discountPriceController.clear();
+                    },
+                    tooltip: "Remove Discount",
+                  ),
+                ),
+                validator: (v) {
+                  if (v != null && v.isNotEmpty) {
+                    final val = double.tryParse(v);
+                    if (val == null) return "Enter a valid price";
+                    if (val <= 0) return "Discount price must be greater than zero";
+                    final normalPrice = double.tryParse(priceController.text);
+                    if (normalPrice != null && val >= normalPrice) {
+                      return "Discount price must be less than normal price";
+                    }
+                  }
                   return null;
                 },
               ),
@@ -160,13 +190,16 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
               try {
                 final newStock = int.parse(stockController.text);
                 final newPrice = double.parse(priceController.text);
+                final discountText = discountPriceController.text.trim();
+                final newDiscountPrice = discountText.isNotEmpty ? double.parse(discountText) : null;
                 // Update stock
                 await ApiService.patch('products/seller/my-items/$productId/update-stock/', {
                   'stock': newStock
                 });
-                // Update price
+                // Update price and discount price
                 await ApiService.patch('products/seller/my-items/$productId/update-price/', {
-                  'price': newPrice
+                  'price': newPrice,
+                  'discount_price': newDiscountPrice
                 });
                 if (mounted) {
                   setState(() {
@@ -175,6 +208,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                       final updatedProduct = Map<String, dynamic>.from(_myProducts[index]);
                       updatedProduct['stock'] = newStock;
                       updatedProduct['price'] = newPrice.toString();
+                      updatedProduct['discount_price'] = newDiscountPrice?.toString();
                       _myProducts[index] = updatedProduct;
                     }
                   });
@@ -419,7 +453,28 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Price: Rs. ${product['price']}"),
+                Builder(
+                  builder: (context) {
+                    final discountPrice = product['discount_price'];
+                    if (discountPrice != null) {
+                      return Row(
+                        children: [
+                          Text("Price: Rs. $discountPrice", style: const TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Rs. ${product['price']}",
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              decoration: TextDecoration.lineThrough,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                    return Text("Price: Rs. ${product['price']}");
+                  }
+                ),
                 Text("Store: ${product['shop_name'] ?? 'Your Shop'}", style: const TextStyle(color: Colors.blue, fontSize: 12)),
                 const SizedBox(height: 4),
                 Text("Stock: ${product['stock']} units", style: TextStyle(color: (product['stock'] ?? 0) < 5 ? Colors.red : Colors.green)),
@@ -442,7 +497,9 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                   onPressed: () {
                     final price = double.tryParse(product['price'].toString()) ?? 0.0;
                     final stock = (product['stock'] ?? 0) as int;
-                    _editProduct(product['id'], price, stock);
+                    final discountPriceStr = product['discount_price']?.toString() ?? '';
+                    final discountPrice = double.tryParse(discountPriceStr);
+                    _editProduct(product['id'], price, stock, discountPrice);
                   },
                   tooltip: "Edit Price & Stock",
                 ),

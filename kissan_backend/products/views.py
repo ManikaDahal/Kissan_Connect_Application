@@ -93,14 +93,37 @@ class SellerProductViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['patch'], url_path='update-price')
     def update_price(self, request, pk=None):
-        """Quickly update the price of a product."""
+        """Quickly update the price and discount price of a product."""
         product = self.get_object()
         new_price = request.data.get('price')
+        discount_price = request.data.get('discount_price')
+
+        updated = False
         if new_price is not None:
             product.price = new_price
+            updated = True
+
+        if 'discount_price' in request.data:
+            if discount_price == '' or discount_price is None:
+                product.discount_price = None
+            else:
+                product.discount_price = discount_price
+            updated = True
+
+        if updated:
+            if product.discount_price is not None:
+                from rest_framework.exceptions import ValidationError
+                if product.discount_price >= product.price:
+                    raise ValidationError("Discount price must be less than original price.")
+                if product.discount_price <= 0:
+                    raise ValidationError("Discount price must be greater than zero.")
             product.save()
-            return Response({'status': 'price updated', 'new_price': str(product.price)})
-        return Response({'error': 'Price value required'}, status=400)
+            return Response({
+                'status': 'price updated',
+                'new_price': str(product.price),
+                'new_discount_price': str(product.discount_price) if product.discount_price is not None else None
+            })
+        return Response({'error': 'Price or discount price value required'}, status=400)
 
 
 class CategorySuggestionViewSet(viewsets.ModelViewSet):

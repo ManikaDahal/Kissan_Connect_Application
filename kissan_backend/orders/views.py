@@ -94,7 +94,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
-                price = product.price
+                price = product.discount_price if product.discount_price is not None else product.price
                 total_amount += (price * qty)
                 order_items.append(
                     OrderItem(

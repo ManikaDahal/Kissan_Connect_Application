@@ -75,10 +75,35 @@ class CartScreen extends ConsumerWidget {
                                       item.product['name'] ?? "Product",
                                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                     ),
-                                    Text(
-                                      "Rs. ${item.product['price']}",
-                                      style: const TextStyle(color: AppTheme.primaryGreen),
-                                    ),
+                                    Builder(builder: (context) {
+                                      final discountPrice = item.product['discount_price'];
+                                      if (discountPrice != null) {
+                                        return Row(
+                                          children: [
+                                            Text(
+                                              "Rs. $discountPrice",
+                                              style: const TextStyle(
+                                                color: AppTheme.primaryGreen,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              "Rs. ${item.product['price']}",
+                                              style: const TextStyle(
+                                                color: Colors.grey,
+                                                decoration: TextDecoration.lineThrough,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      }
+                                      return Text(
+                                        "Rs. ${item.product['price']}",
+                                        style: const TextStyle(color: AppTheme.primaryGreen, fontWeight: FontWeight.bold),
+                                      );
+                                    }),
                                   ],
                                 ),
                               ),
