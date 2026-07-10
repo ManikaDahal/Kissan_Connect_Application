@@ -25,6 +25,26 @@ class _SellerRegistrationScreenState extends State<SellerRegistrationScreen> {
 
   final ImagePicker _picker = ImagePicker();
 
+  @override
+  void initState() {
+    super.initState();
+    _retrieveLostData();
+  }
+
+  Future<void> _retrieveLostData() async {
+    final response = await _picker.retrieveLostData();
+    if (response.isEmpty) return;
+    if (response.file != null) {
+      setState(() {
+        if (_citizenshipFront == null) {
+          _citizenshipFront = File(response.file!.path);
+        } else {
+          _citizenshipBack = File(response.file!.path);
+        }
+      });
+    }
+  }
+
   Future<void> _pickImage(bool isFront) async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,

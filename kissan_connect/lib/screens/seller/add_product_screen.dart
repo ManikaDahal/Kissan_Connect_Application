@@ -41,6 +41,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
   void initState() {
     super.initState();
     _fetchCategories();
+    _retrieveLostData();
+  }
+
+  Future<void> _retrieveLostData() async {
+    final response = await ImagePicker().retrieveLostData();
+    if (response.isEmpty) return;
+    if (response.file != null) {
+      setState(() {
+        _image = File(response.file!.path);
+      });
+    }
   }
 
   Future<void> _fetchCategories() async {

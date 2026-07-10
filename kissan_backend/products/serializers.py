@@ -26,7 +26,6 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.SerializerMethodField()
-    image = serializers.SerializerMethodField()
     reviews = ReviewSerializer(many=True, read_only=True)
     average_rating = serializers.ReadOnlyField()
     total_reviews = serializers.ReadOnlyField()
@@ -61,20 +60,22 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_category_name(self, obj):
         return obj.category.name if obj.category else "Uncategorized"
 
-    def get_image(self, obj):
-        if obj.image:
-            url = obj.image.url
-            # Force Cloudinary to serve as JPG to avoid AVIF compression errors in Flutter
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if instance.image:
+            url = instance.image.url
             if 'cloudinary' in url and '/upload/' in url:
-                return url.replace('/upload/', '/upload/f_jpg/')
-            return url
-        return None
+                representation['image'] = url.replace('/upload/', '/upload/f_jpg/')
+            else:
+                representation['image'] = url
+        else:
+            representation['image'] = None
+        return representation
 
 
 class ProductListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for listing products — no embedded reviews."""
     category_name = serializers.SerializerMethodField()
-    image = serializers.SerializerMethodField()
     average_rating = serializers.ReadOnlyField()
     total_reviews = serializers.ReadOnlyField()
     shop_name = serializers.ReadOnlyField(source='seller.seller_profile.shop_name')
@@ -92,13 +93,17 @@ class ProductListSerializer(serializers.ModelSerializer):
     def get_category_name(self, obj):
         return obj.category.name if obj.category else "Uncategorized"
 
-    def get_image(self, obj):
-        if obj.image:
-            url = obj.image.url
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if instance.image:
+            url = instance.image.url
             if 'cloudinary' in url and '/upload/' in url:
-                return url.replace('/upload/', '/upload/f_jpg/')
-            return url
-        return None
+                representation['image'] = url.replace('/upload/', '/upload/f_jpg/')
+            else:
+                representation['image'] = url
+        else:
+            representation['image'] = None
+        return representation
 
 
 class CategorySuggestionSerializer(serializers.ModelSerializer):
