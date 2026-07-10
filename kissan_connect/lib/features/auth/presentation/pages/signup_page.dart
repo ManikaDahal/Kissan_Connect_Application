@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kissan_connect/core/utils/color_utils.dart';
@@ -33,9 +34,11 @@ class _SignupPageState extends ConsumerState<SignupPage> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-      child: Scaffold(
-        backgroundColor: backgroundColor,
-        appBar: AppBar(
+      child: Stack(
+        children: [
+          Scaffold(
+            backgroundColor: backgroundColor,
+            appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
@@ -264,7 +267,27 @@ class _SignupPageState extends ConsumerState<SignupPage> {
           ),
         ),
       ),
-    ));
+    ),
+          // Blur overlay — shown while any loading is active
+          if (_isLoading || _isGoogleLoading)
+            Positioned.fill(
+              child: AbsorbPointer(
+                absorbing: true,
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                  child: Container(
+                    color: Colors.black.withOpacity(0.35),
+                    child: const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ));
+   
   }
 }
+
 

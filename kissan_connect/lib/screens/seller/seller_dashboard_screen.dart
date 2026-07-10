@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:kissan_connect/services/api_service.dart';
 import 'package:kissan_connect/widgets/custom_app_bar.dart';
@@ -108,9 +109,15 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
     final stockController = TextEditingController(text: currentStock.toString());
     final formKey = GlobalKey<FormState>();
     
+    bool isSaving = false;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Stack(
+          children: [
+            AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text("Edit Price & Stock", style: TextStyle(fontWeight: FontWeight.bold)),
         content: Form(
@@ -187,6 +194,8 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
             ),
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
+              FocusScope.of(context).unfocus();
+              setDialogState(() => isSaving = true);
               try {
                 final newStock = int.parse(stockController.text);
                 final newPrice = double.parse(priceController.text);
@@ -218,6 +227,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Product updated successfully!")));
                 }
               } catch (e) {
+                setDialogState(() => isSaving = false);
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
                 }
@@ -227,6 +237,43 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
           ),
         ],
       ),
+      // Blur overlay inside dialog while saving
+      if (isSaving)
+        Positioned.fill(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(color: Colors.green),
+                      SizedBox(height: 16),
+                      Text(
+                        "Saving...",
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+    ],
+  ),
+),
     );
   }
 
