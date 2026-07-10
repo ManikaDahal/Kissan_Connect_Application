@@ -80,20 +80,26 @@ class CartScreen extends ConsumerWidget {
                                       if (discountPrice != null) {
                                         return Row(
                                           children: [
-                                            Text(
-                                              "Rs. $discountPrice",
-                                              style: const TextStyle(
-                                                color: AppTheme.primaryGreen,
-                                                fontWeight: FontWeight.bold,
+                                            Flexible(
+                                              child: Text(
+                                                "Rs. $discountPrice",
+                                                style: const TextStyle(
+                                                  color: AppTheme.primaryGreen,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
                                             const SizedBox(width: 6),
-                                            Text(
-                                              "Rs. ${item.product['price']}",
-                                              style: const TextStyle(
-                                                color: Colors.grey,
-                                                decoration: TextDecoration.lineThrough,
-                                                fontSize: 12,
+                                            Flexible(
+                                              child: Text(
+                                                "Rs. ${item.product['price']}",
+                                                style: const TextStyle(
+                                                  color: Colors.grey,
+                                                  decoration: TextDecoration.lineThrough,
+                                                  fontSize: 12,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
                                           ],

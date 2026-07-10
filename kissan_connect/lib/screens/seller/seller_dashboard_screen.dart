@@ -459,14 +459,23 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                     if (discountPrice != null) {
                       return Row(
                         children: [
-                          Text("Price: Rs. $discountPrice", style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Flexible(
+                            child: Text(
+                              "Price: Rs. $discountPrice",
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                           const SizedBox(width: 8),
-                          Text(
-                            "Rs. ${product['price']}",
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              decoration: TextDecoration.lineThrough,
-                              fontSize: 12,
+                          Flexible(
+                            child: Text(
+                              "Rs. ${product['price']}",
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                decoration: TextDecoration.lineThrough,
+                                fontSize: 12,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
