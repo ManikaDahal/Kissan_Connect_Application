@@ -74,7 +74,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                       children: [
                         if (category['image'] != null)
                           Image.network(
-                            category['image'],
+                            ApiService.getImageUrl(category['image']),
                             fit: BoxFit.cover,
                           )
                         else

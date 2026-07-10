@@ -4,6 +4,7 @@ import 'package:kissan_connect/core/providers/cart_provider.dart';
 import 'package:kissan_connect/core/utils/route_const.dart';
 import 'package:kissan_connect/core/utils/route_generator.dart';
 import '../theme/app_theme.dart';
+import 'package:kissan_connect/services/api_service.dart';
 
 class ProductCard extends ConsumerWidget {
   final dynamic product;
@@ -48,7 +49,7 @@ class ProductCard extends ConsumerWidget {
                     color: Colors.grey[100],
                     child: product['image'] != null && product['image'].toString().isNotEmpty
                         ? Image.network(
-                            product['image'], 
+                            ApiService.getImageUrl(product['image']), 
                             fit: BoxFit.cover,
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;

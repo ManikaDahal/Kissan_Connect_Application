@@ -205,7 +205,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
                       Hero(
                         tag: 'product-${product['id']}',
                         child: product['image'] != null
-                            ? Image.network(product['image'], fit: BoxFit.contain, height: 200)
+                            ? Image.network(ApiService.getImageUrl(product['image']), fit: BoxFit.contain, height: 200)
                             : const Icon(Icons.shopping_bag, size: 100, color: AppTheme.primaryGreen),
                       ),
                     ],

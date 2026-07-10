@@ -491,7 +491,9 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
             leading: ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.network(
-                product['image'] ?? 'https://via.placeholder.com/150',
+                ApiService.getImageUrl(product['image']).isEmpty
+                    ? 'https://via.placeholder.com/150'
+                    : ApiService.getImageUrl(product['image']),
                 width: 60, height: 60, fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey, width: 60, height: 60, child: const Icon(Icons.image_not_supported)),
               ),

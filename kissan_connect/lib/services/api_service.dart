@@ -15,6 +15,18 @@ class ApiException implements Exception {
 class ApiService {
   static const String baseUrl = '${Constants.apiBaseUrl}/api';
 
+  static String getImageUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    final base = Constants.apiBaseUrl;
+    if (path.startsWith('/')) {
+      return '$base$path';
+    }
+    return '$base/$path';
+  }
+
   static Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('access_token');

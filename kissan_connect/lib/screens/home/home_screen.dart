@@ -405,7 +405,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
               ),
               child: ClipOval(
                 child: imageUrl != null && imageUrl.isNotEmpty
-                    ? Image.network(imageUrl, fit: BoxFit.cover)
+                    ? Image.network(ApiService.getImageUrl(imageUrl), fit: BoxFit.cover)
                     : Icon(
                         id == null ? Icons.apps : Icons.category,
                         color: isSelected ? Colors.white : AppTheme.primaryGreen,

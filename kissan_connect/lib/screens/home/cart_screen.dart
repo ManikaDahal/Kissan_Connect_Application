@@ -62,7 +62,7 @@ class CartScreen extends ConsumerWidget {
                                 child: item.product['image'] != null
                                     ? ClipRRect(
                                         borderRadius: BorderRadius.circular(8),
-                                        child: Image.network(item.product['image'], fit: BoxFit.cover),
+                                        child: Image.network(ApiService.getImageUrl(item.product['image']), fit: BoxFit.cover),
                                       )
                                     : const Icon(Icons.shopping_bag, color: Colors.grey),
                               ),
