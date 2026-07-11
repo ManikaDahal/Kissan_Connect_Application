@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:kissan_connect/core/utils/const.dart';
 
 class ApiException implements Exception {
@@ -168,7 +169,20 @@ class ApiService {
 
       for (var entry in files.entries) {
         if (entry.value.isNotEmpty) {
-          request.files.add(await http.MultipartFile.fromPath(entry.key, entry.value));
+          final isImage = entry.value.toLowerCase().endsWith('.jpg') || 
+                          entry.value.toLowerCase().endsWith('.jpeg') || 
+                          entry.value.toLowerCase().endsWith('.png');
+          
+          MediaType? contentType;
+          if (isImage) {
+            contentType = MediaType('image', entry.value.toLowerCase().endsWith('.png') ? 'png' : 'jpeg');
+          }
+
+          request.files.add(await http.MultipartFile.fromPath(
+            entry.key, 
+            entry.value,
+            contentType: contentType,
+          ));
         }
       }
 

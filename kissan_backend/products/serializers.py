@@ -26,6 +26,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.SerializerMethodField()
+    image = serializers.ImageField(required=False, allow_null=True)
     reviews = ReviewSerializer(many=True, read_only=True)
     average_rating = serializers.ReadOnlyField()
     total_reviews = serializers.ReadOnlyField()

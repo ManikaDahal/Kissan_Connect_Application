@@ -70,9 +70,9 @@ class _SellerRegistrationScreenState extends State<SellerRegistrationScreen> {
     if (source != null) {
       final XFile? image = await _picker.pickImage(
         source: source,
-        maxWidth: 1080,
-        maxHeight: 1080,
-        imageQuality: 85,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 70,
       );
       if (image != null) {
         setState(() {
