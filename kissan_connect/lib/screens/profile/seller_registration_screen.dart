@@ -46,43 +46,20 @@ class _SellerRegistrationScreenState extends State<SellerRegistrationScreen> {
   }
 
   Future<void> _pickImage(bool isFront) async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text("Choose from Gallery"),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text("Take a Photo"),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-          ],
-        ),
-      ),
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 70,
     );
-
-    if (source != null) {
-      final XFile? image = await _picker.pickImage(
-        source: source,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 70,
-      );
-      if (image != null) {
-        setState(() {
-          if (isFront) {
-            _citizenshipFront = File(image.path);
-          } else {
-            _citizenshipBack = File(image.path);
-          }
-        });
-      }
+    if (image != null) {
+      setState(() {
+        if (isFront) {
+          _citizenshipFront = File(image.path);
+        } else {
+          _citizenshipBack = File(image.path);
+        }
+      });
     }
   }
 
