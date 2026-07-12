@@ -23,6 +23,9 @@ media/
 .env
 .envrc
 
+# Firebase — private service account key (NEVER commit this)
+firebase-service-account.json
+
 # IDE
 .vscode/
 .idea/

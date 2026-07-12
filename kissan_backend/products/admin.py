@@ -53,12 +53,12 @@ class ProductAdmin(admin.ModelAdmin):
     def approve_products(self, request, queryset):
         updated = queryset.update(approval_status='approved', admin_note='')
         self.message_user(request, f"{updated} product(s) approved and are now visible to buyers.")
-    approve_products.short_description = "✅ Approve selected products"
+    approve_products.short_description = "Approve selected products"
 
     def reject_products(self, request, queryset):
         updated = queryset.update(approval_status='rejected')
         self.message_user(request, f"{updated} product(s) rejected. Add an admin_note on each to inform the seller.")
-    reject_products.short_description = "❌ Reject selected products"
+    reject_products.short_description = "Reject selected products"
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
