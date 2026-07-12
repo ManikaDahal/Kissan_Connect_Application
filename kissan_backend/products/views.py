@@ -86,14 +86,10 @@ class SellerProductViewSet(viewsets.ModelViewSet):
         def _notify_buyers():
             try:
                 from users.models import User
-                tokens = list(
-                    User.objects.filter(role='buyer', fcm_token__isnull=False)
-                    .exclude(fcm_token='')
-                    .values_list('fcm_token', flat=True)
-                )
-                if tokens:
+                buyers = list(User.objects.filter(role='buyer'))
+                if buyers:
                     send_push_to_many(
-                        tokens=tokens,
+                        users=buyers,
                         title='🌱 New Product on KissanConnect!',
                         body=f'{product.name} is now available. Check it out!',
                         data={'route': 'home'},
@@ -118,6 +114,7 @@ class SellerProductViewSet(viewsets.ModelViewSet):
     def update_price(self, request, pk=None):
         """Quickly update the price and discount price of a product."""
         product = self.get_object()
+        previous_discount_price = product.discount_price
         new_price = request.data.get('price')
         discount_price = request.data.get('discount_price')
 
@@ -141,6 +138,34 @@ class SellerProductViewSet(viewsets.ModelViewSet):
                 if product.discount_price <= 0:
                     raise ValidationError("Discount price must be greater than zero.")
             product.save()
+
+            if 'discount_price' in request.data and product.discount_price is not None and (
+                previous_discount_price is None or previous_discount_price != product.discount_price
+            ):
+                def _notify_discount():
+                    try:
+                        from users.models import User
+                        if product.seller:
+                            send_push(
+                                user=product.seller,
+                                title='💸 Discount Updated',
+                                body=f'You added a discount to "{product.name}" for Rs {product.discount_price}.',
+                                data={'route': 'seller_dashboard'},
+                            )
+
+                        buyers = list(User.objects.filter(role='buyer'))
+                        if buyers:
+                            send_push_to_many(
+                                users=buyers,
+                                title='💸 New Discount Alert!',
+                                body=f'{product.name} is now available at a special discount of Rs {product.discount_price}.',
+                                data={'route': 'home'},
+                            )
+                    except Exception as e:
+                        print(f'Discount notification error: {e}')
+
+                threading.Thread(target=_notify_discount).start()
+
             return Response({
                 'status': 'price updated',
                 'new_price': str(product.price),

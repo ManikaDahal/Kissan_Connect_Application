@@ -120,6 +120,19 @@ class OrderViewSet(viewsets.ModelViewSet):
             item.order = order
             item.save()
 
+        def _notify_buyer_confirmation():
+            try:
+                send_push(
+                    user=request.user,
+                    title='✅ Order Placed Successfully!',
+                    body='Your order is confirmed and we will keep you updated on its progress.',
+                    data={'route': 'orders'},
+                )
+            except Exception as e:
+                print(f'Buyer order confirmation notification error: {e}')
+
+        threading.Thread(target=_notify_buyer_confirmation).start()
+
         # --- Push Notification: Notify each seller their product was ordered ---
         def _notify_sellers():
             try:
@@ -131,14 +144,13 @@ class OrderViewSet(viewsets.ModelViewSet):
                             seller_map[seller] = []
                         seller_map[seller].append(item.product.name)
                 for seller, products in seller_map.items():
-                    if seller.fcm_token:
-                        product_list = ', '.join(products)
-                        send_push(
-                            token=seller.fcm_token,
-                            title='New Order Received!',
-                            body=f'A buyer ordered: {product_list}. Check your dashboard.',
-                            data={'route': 'seller_orders'},
-                        )
+                    product_list = ', '.join(products)
+                    send_push(
+                        user=seller,
+                        title='🛒 New Order Received!',
+                        body=f'A buyer ordered: {product_list}. Check your dashboard.',
+                        data={'route': 'seller_orders'},
+                    )
             except Exception as e:
                 print(f'Order notification error: {e}')
         threading.Thread(target=_notify_sellers).start()
@@ -229,6 +241,19 @@ class OrderViewSet(viewsets.ModelViewSet):
                     order.save()
                     _deduct_stock(order)
                     _create_seller_transactions(order)
+
+                    def _notify_buyer_payment():
+                        try:
+                            send_push(
+                                user=order.user,
+                                title='💳 Payment Confirmed',
+                                body='Your payment is confirmed and your order is now being processed.',
+                                data={'route': 'orders'},
+                            )
+                        except Exception as e:
+                            print(f'Buyer payment notification error: {e}')
+
+                    threading.Thread(target=_notify_buyer_payment).start()
                 return Response({'status': 'success', 'message': 'Payment successful'})
             else:
                 return Response({'status': 'failed', 'message': data.get('status', 'Unknown error')}, status=400)
@@ -262,6 +287,19 @@ def stripe_webhook(request):
                     order.save()
                     _deduct_stock(order)
                     _create_seller_transactions(order)
+
+                    def _notify_buyer_payment():
+                        try:
+                            send_push(
+                                user=order.user,
+                                title='Payment Confirmed',
+                                body='Your payment is confirmed and your order is now being processed.',
+                                data={'route': 'orders'},
+                            )
+                        except Exception as e:
+                            print(f'Buyer payment notification error: {e}')
+
+                    threading.Thread(target=_notify_buyer_payment).start()
             except Order.DoesNotExist:
                 pass
     elif event['type'] in ['payment_intent.payment_failed', 'payment_intent.canceled']:
@@ -347,6 +385,15 @@ def update_item_status(request, item_id):
     item.status = new_status
     item.save()
 
+    if item.order.status in {'paid', 'shipped', 'delivered', 'cancelled'}:
+        if all(i.status == 'cancelled' for i in item.order.items.all()):
+            item.order.status = 'cancelled'
+        elif all(i.status == 'delivered' for i in item.order.items.all()):
+            item.order.status = 'delivered'
+        elif any(i.status in {'shipped', 'delivered'} for i in item.order.items.all()):
+            item.order.status = 'shipped'
+        item.order.save(update_fields=['status'])
+
     # --- Push Notification: Notify buyer when seller updates item status ---
     def _notify_buyer():
         try:
@@ -359,7 +406,7 @@ def update_item_status(request, item_id):
                 }
                 if new_status in status_messages:
                     title, body = status_messages[new_status]
-                    send_push(token=buyer.fcm_token, title=title, body=body, data={'route': 'orders'})
+                    send_push(user=buyer, title=title, body=body, data={'route': 'orders'})
         except Exception as e:
             print(f'Item status notification error: {e}')
     threading.Thread(target=_notify_buyer).start()

@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     'weather',
     'django_filters',
     'cart',
+    'notifications',
 ]
 
 MIDDLEWARE = [

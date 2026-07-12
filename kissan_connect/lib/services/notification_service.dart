@@ -1,8 +1,9 @@
-import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:kissan_connect/core/utils/const.dart';
+import 'package:kissan_connect/core/utils/route_const.dart';
 import 'package:kissan_connect/services/api_service.dart';
 
 /// Top-level handler for background messages (must be outside a class).
@@ -112,9 +113,37 @@ class NotificationService {
   }
 
   static void _handleRoute(String? route) {
-    if (route == null) return;
-    // Navigate using the global navigator key from Constants
-    // Routes: 'orders', 'seller_orders', 'home'
-    debugPrint('NotificationService: Navigate to $route');
+    if (route == null || route.trim().isEmpty) return;
+
+    final context = Constants.navigatorKey.currentContext;
+    if (context == null) return;
+
+    switch (route.trim()) {
+      case 'home':
+        _navigateToRoute(context, Routes.bottomNavBarRoute);
+        break;
+      case 'orders':
+        _navigateToRoute(context, Routes.ordersRoute);
+        break;
+      case 'seller_orders':
+        _navigateToRoute(context, Routes.sellerOrdersRoute);
+        break;
+      case 'seller_dashboard':
+        _navigateToRoute(context, Routes.sellerDashboardRoute);
+        break;
+      case 'notifications':
+        _navigateToRoute(context, Routes.notificationsRoute);
+        break;
+      default:
+        _navigateToRoute(context, Routes.notificationsRoute);
+        break;
+    }
+  }
+
+  static void _navigateToRoute(BuildContext context, String targetRoute) {
+    final currentRouteName = ModalRoute.of(context)?.settings.name;
+    if (currentRouteName == targetRoute) return;
+
+    Navigator.of(context).pushNamedAndRemoveUntil(targetRoute, (route) => false);
   }
 }

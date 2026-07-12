@@ -10,6 +10,10 @@ import 'package:kissan_connect/screens/home/category_products_screen.dart';
 import 'package:kissan_connect/screens/home/checkout_screen.dart';
 import 'package:kissan_connect/screens/home/product_details_screen.dart';
 import 'package:kissan_connect/screens/onboarding_screen.dart';
+import 'package:kissan_connect/screens/notification/notification_screen.dart';
+import 'package:kissan_connect/screens/profile/order_history_screen.dart';
+import 'package:kissan_connect/screens/seller/seller_dashboard_screen.dart';
+import 'package:kissan_connect/screens/seller/seller_orders_screen.dart';
 
 class RouteGenerator {
   static Future<dynamic>? navigateToPage(
@@ -94,6 +98,26 @@ class RouteGenerator {
         final product = settings.arguments;
         return MaterialPageRoute(
           builder: (_) => ProductDetailsScreen(product: product),
+        );
+
+      case Routes.notificationsRoute:
+        return MaterialPageRoute(
+          builder: (_) => const NotificationScreen(),
+        );
+
+      case Routes.ordersRoute:
+        return MaterialPageRoute(
+          builder: (_) => const OrderHistoryScreen(),
+        );
+
+      case Routes.sellerOrdersRoute:
+        return MaterialPageRoute(
+          builder: (_) => const SellerOrdersScreen(),
+        );
+
+      case Routes.sellerDashboardRoute:
+        return MaterialPageRoute(
+          builder: (_) => const SellerDashboardScreen(),
         );
 
       default:

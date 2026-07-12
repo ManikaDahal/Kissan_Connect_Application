@@ -16,4 +16,8 @@ class Routes {
   static const categoryProductsRoute = "/categoryProducts";
   static const checkoutRoute = "/checkout";
   static const productDetailsRoute = "/productDetails";
+  static const notificationsRoute = "/notifications";
+  static const ordersRoute = "/orders";
+  static const sellerOrdersRoute = "/sellerOrders";
+  static const sellerDashboardRoute = "/sellerDashboard";
 }

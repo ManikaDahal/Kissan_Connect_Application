@@ -10,6 +10,8 @@ import '../../theme/app_theme.dart';
 import '../../services/api_service.dart';
 import 'package:kissan_connect/widgets/custom_app_bar.dart';
 import 'package:kissan_connect/widgets/weather_card.dart';
+import 'package:kissan_connect/core/utils/route_generator.dart';
+import 'package:kissan_connect/core/utils/route_const.dart';
 import 'search_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -30,6 +32,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   int? _selectedCategory;
   String? _sortBy;
   Timer? _debounce;
+  int _unreadNotificationCount = 0;
 
   @override
   void initState() {
@@ -38,9 +41,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     _initData();
   }
 
+  Future<void> _fetchUnreadNotificationCount() async {
+    try {
+      final response = await ApiService.get('notifications/unread-count/');
+      if (response != null && response is Map<String, dynamic>) {
+        if (mounted) {
+          setState(() {
+            _unreadNotificationCount = response['unread_count'] ?? 0;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching unread count: $e");
+    }
+  }
+
   /// Loads cache first, then decides whether to show shimmer or do a silent refresh.
   Future<void> _initData() async {
     await _loadCachedData();
+    _fetchUnreadNotificationCount();
     // If cache gave us products, do a quiet background refresh (no shimmer).
     // If cache was empty, do a normal fetch so _isLoading=true triggers the shimmer.
     if (_allProducts.isNotEmpty) {
@@ -142,11 +161,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         futures.add(Future.value(null));
       }
 
+      // 3: Unread notifications count (always)
+      futures.add(ApiService.get('notifications/unread-count/').catchError((e) {
+        debugPrint("Unread notifications count error: $e");
+        return null;
+      }));
+
       // Execute all calls in parallel
       final results = await Future.wait(futures);
       final categoriesData = results[0];
       final productsData = results[1];
       final famousData = results[2];
+      final unreadData = results[3];
 
       if (mounted) {
         setState(() {
@@ -166,6 +192,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
             _famousProducts = (famousData is Map && famousData.containsKey('results')) 
                 ? famousData['results'] 
                 : famousData;
+          }
+
+          if (unreadData != null && unreadData is Map && unreadData.containsKey('unread_count')) {
+            _unreadNotificationCount = unreadData['unread_count'] ?? 0;
           }
           
           _isLoading = false;
@@ -200,9 +230,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         title: "KissanConnect",
         centerTitle: false,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.white),
-            onPressed: () {},
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_none, color: Colors.white),
+                onPressed: () async {
+                  await RouteGenerator.navigateToPage(context, Routes.notificationsRoute);
+                  _fetchUnreadNotificationCount();
+                },
+              ),
+              if (_unreadNotificationCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      '$_unreadNotificationCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
       ),

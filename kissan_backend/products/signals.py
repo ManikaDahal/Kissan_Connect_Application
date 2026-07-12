@@ -18,7 +18,7 @@ def notify_seller_on_approval(sender, instance, created, **kwargs):
 
     try:
         seller = instance.seller
-        if not seller or not seller.fcm_token:
+        if not seller:
             return
 
         from kissan_core.firebase_helper import send_push
@@ -27,7 +27,7 @@ def notify_seller_on_approval(sender, instance, created, **kwargs):
         if instance.approval_status == 'approved':
             def _send():
                 send_push(
-                    token=seller.fcm_token,
+                    user=seller,
                     title='✅ Product Approved!',
                     body=f'Your product "{instance.name}" has been approved and is now live on KissanConnect!',
                     data={'route': 'seller_dashboard'},
@@ -38,7 +38,7 @@ def notify_seller_on_approval(sender, instance, created, **kwargs):
             note = f' Reason: {instance.admin_note}' if instance.admin_note else ''
             def _send():
                 send_push(
-                    token=seller.fcm_token,
+                    user=seller,
                     title='❌ Product Rejected',
                     body=f'Your product "{instance.name}" was not approved.{note}',
                     data={'route': 'seller_dashboard'},
