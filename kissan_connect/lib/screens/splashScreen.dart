@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kissan_connect/services/api_service.dart';
+import 'package:kissan_connect/services/notification_service.dart';
 import 'package:kissan_connect/core/utils/route_const.dart';
 import 'package:kissan_connect/core/utils/route_generator.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -35,6 +36,9 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
 
     if (loggedIn) {
+      // Refresh and send the push token to the backend
+      NotificationService.sendTokenToServer();
+      
       RouteGenerator.navigateToPageWithoutStack(
         context,
         Routes.bottomNavBarRoute,
