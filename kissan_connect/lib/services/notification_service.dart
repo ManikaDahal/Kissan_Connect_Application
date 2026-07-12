@@ -76,20 +76,20 @@ class NotificationService {
               icon: '@mipmap/ic_launcher',
             ),
           ),
-          payload: message.data['route'],
+          payload: _buildPayload(message.data),
         );
       }
     });
 
     // Handle notification tap when app is in background/terminated
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      _handleRoute(message.data['route']);
+      _handleRoute(_buildPayload(message.data));
     });
 
     // Handle notification tap when app was completely terminated
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
-      _handleRoute(initialMessage.data['route']);
+      _handleRoute(_buildPayload(initialMessage.data));
     }
   }
 
@@ -113,15 +113,45 @@ class NotificationService {
     _handleRoute(response.payload);
   }
 
-  static void _handleRoute(String? route) {
-    if (route == null || route.trim().isEmpty) return;
+  static String _buildPayload(Map<String, dynamic> data) {
+    final route = (data['route'] ?? '').toString().trim();
+    if (route.isEmpty) return '';
 
-    final normalizedRoute = route.trim();
+    final params = <String, String>{};
+    data.forEach((key, value) {
+      if (key == 'route') return;
+      params[key] = value.toString();
+    });
+
+    if (params.isEmpty) return route;
+
+    final query = params.entries
+        .map((entry) => '${Uri.encodeComponent(entry.key)}=${Uri.encodeComponent(entry.value)}')
+        .join('&');
+    return '$route?$query';
+  }
+
+  static void _handleRoute(String? payload) {
+    if (payload == null || payload.trim().isEmpty) return;
+
+    final routeText = payload.trim();
+    final parts = routeText.split('?');
+    final route = parts.first.trim();
+    final params = <String, String>{};
+
+    if (parts.length > 1) {
+      for (final pair in parts.last.split('&')) {
+        final segments = pair.split('=');
+        if (segments.length == 2) {
+          params[Uri.decodeComponent(segments[0])] = Uri.decodeComponent(segments[1]);
+        }
+      }
+    }
 
     final context = Constants.navigatorKey.currentContext;
     if (context == null) return;
 
-    switch (normalizedRoute) {
+    switch (route) {
       case 'home':
         _navigateToRoute(context, Routes.bottomNavBarRoute);
         break;
@@ -138,7 +168,7 @@ class NotificationService {
         _navigateToRoute(context, Routes.notificationsRoute);
         break;
       case 'chat':
-        _openChat(context, route);
+        _openChat(context, payload);
         break;
       default:
         _navigateToRoute(context, Routes.notificationsRoute);
@@ -153,19 +183,19 @@ class NotificationService {
     Navigator.of(context).pushNamedAndRemoveUntil(targetRoute, (route) => false);
   }
 
-  static void _openChat(BuildContext context, String route) {
-    final data = route.split('?').length > 1 ? route.split('?').last : '';
+  static void _openChat(BuildContext context, String payload) {
+    final data = payload.split('?').length > 1 ? payload.split('?').last : '';
     final params = <String, String>{};
     for (final pair in data.split('&')) {
       final parts = pair.split('=');
       if (parts.length == 2) {
-        params[parts[0]] = parts[1];
+        params[Uri.decodeComponent(parts[0])] = Uri.decodeComponent(parts[1]);
       }
     }
 
     final conversationId = int.tryParse(params['conversation_id'] ?? '0') ?? 0;
     final otherUserId = int.tryParse(params['other_user_id'] ?? '0') ?? 0;
-    final otherUserName = Uri.decodeComponent(params['other_user_name'] ?? 'Support');
+    final otherUserName = params['other_user_name'] ?? 'Support';
 
     if (conversationId <= 0 || otherUserId <= 0) {
       _navigateToRoute(context, Routes.conversationsRoute);

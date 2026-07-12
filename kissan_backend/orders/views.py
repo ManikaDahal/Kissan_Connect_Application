@@ -8,10 +8,12 @@ from rest_framework import viewsets, permissions, status, views
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from django.db.models import Q
 from .models import Order, OrderItem, Transaction
 from .serializers import OrderSerializer
 from products.models import Product
 from users.models import UserAddress
+from chat.models import Conversation
 from kissan_core.firebase_helper import send_push, send_push_to_many
 
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
@@ -54,6 +56,57 @@ def _create_seller_transactions(order):
                 'status': 'held',
             }
         )
+
+
+def _get_order_conversations(order):
+    """Create or reuse conversations for each seller involved in the order."""
+    buyer = order.user
+    sellers = []
+    for item in order.items.select_related('product__seller').all():
+        if item.product and item.product.seller and item.product.seller != buyer:
+            sellers.append(item.product.seller)
+
+    unique_sellers = list(dict.fromkeys(sellers))
+    conversations = []
+    for seller in unique_sellers:
+        conversation = Conversation.objects.filter(
+            Q(participant_a=buyer, participant_b=seller) | Q(participant_a=seller, participant_b=buyer)
+        ).first()
+        if not conversation:
+            conversation = Conversation.objects.create(participant_a=buyer, participant_b=seller)
+        conversations.append((conversation, seller))
+    return conversations
+
+
+def _notify_payment_success(order):
+    """Notify the buyer and sellers after payment completion and ensure chat is ready."""
+    buyer = order.user
+
+    try:
+        send_push(
+            user=buyer,
+            title='Payment Confirmed',
+            body='Your payment is confirmed and your order is now being processed.',
+            data={'route': 'orders'},
+        )
+    except Exception as e:
+        print(f'Buyer payment notification error: {e}')
+
+    for conversation, seller in _get_order_conversations(order):
+        try:
+            send_push(
+                user=seller,
+                title='Payment Received',
+                body=f'{buyer.full_name or buyer.email} completed payment for your order. You can chat now.',
+                data={
+                    'route': 'chat',
+                    'conversation_id': conversation.id,
+                    'other_user_id': buyer.id,
+                    'other_user_name': buyer.full_name or buyer.email,
+                },
+            )
+        except Exception as e:
+            print(f'Seller payment notification error: {e}')
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -119,19 +172,6 @@ class OrderViewSet(viewsets.ModelViewSet):
         for item in order_items:
             item.order = order
             item.save()
-
-        def _notify_buyer_confirmation():
-            try:
-                send_push(
-                    user=request.user,
-                    title='✅ Order Placed Successfully!',
-                    body='Your order is confirmed and we will keep you updated on its progress.',
-                    data={'route': 'orders'},
-                )
-            except Exception as e:
-                print(f'Buyer order confirmation notification error: {e}')
-
-        threading.Thread(target=_notify_buyer_confirmation).start()
 
         # --- Push Notification: Notify each seller their product was ordered ---
         def _notify_sellers():
@@ -241,19 +281,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                     order.save()
                     _deduct_stock(order)
                     _create_seller_transactions(order)
-
-                    def _notify_buyer_payment():
-                        try:
-                            send_push(
-                                user=order.user,
-                                title='💳 Payment Confirmed',
-                                body='Your payment is confirmed and your order is now being processed.',
-                                data={'route': 'orders'},
-                            )
-                        except Exception as e:
-                            print(f'Buyer payment notification error: {e}')
-
-                    threading.Thread(target=_notify_buyer_payment).start()
+                    threading.Thread(target=lambda: _notify_payment_success(order)).start()
                 return Response({'status': 'success', 'message': 'Payment successful'})
             else:
                 return Response({'status': 'failed', 'message': data.get('status', 'Unknown error')}, status=400)
@@ -287,19 +315,7 @@ def stripe_webhook(request):
                     order.save()
                     _deduct_stock(order)
                     _create_seller_transactions(order)
-
-                    def _notify_buyer_payment():
-                        try:
-                            send_push(
-                                user=order.user,
-                                title='Payment Confirmed',
-                                body='Your payment is confirmed and your order is now being processed.',
-                                data={'route': 'orders'},
-                            )
-                        except Exception as e:
-                            print(f'Buyer payment notification error: {e}')
-
-                    threading.Thread(target=_notify_buyer_payment).start()
+                    threading.Thread(target=lambda: _notify_payment_success(order)).start()
             except Order.DoesNotExist:
                 pass
     elif event['type'] in ['payment_intent.payment_failed', 'payment_intent.canceled']:

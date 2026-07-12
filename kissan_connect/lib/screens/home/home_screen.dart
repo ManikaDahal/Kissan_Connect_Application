@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:kissan_connect/core/providers/nav_provider.dart';
 import 'package:kissan_connect/widgets/product_card.dart';
 import 'package:kissan_connect/widgets/shimmer_loading.dart';
@@ -25,8 +26,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   List<dynamic> _categories = [];
   List<dynamic> _famousProducts = [];
   List<dynamic> _allProducts = [];
+  List<dynamic> _nearbyProducts = [];
+  List<dynamic> _recommendedProducts = [];
   bool _isLoading = true;
   bool _isSearchLoading = false;
+  bool _isLoadingNearby = false;
+  bool _isLoadingRecommendations = false;
+  String? _locationMessage;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   int? _selectedCategory;
@@ -60,13 +66,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   Future<void> _initData() async {
     await _loadCachedData();
     _fetchUnreadNotificationCount();
-    // If cache gave us products, do a quiet background refresh (no shimmer).
-    // If cache was empty, do a normal fetch so _isLoading=true triggers the shimmer.
     if (_allProducts.isNotEmpty) {
-      _fetchData(isSilent: true);
+      await _fetchData(isSilent: true);
     } else {
-      _fetchData();
+      await _fetchData();
     }
+    await Future.wait([_fetchNearbyProducts(), _fetchRecommendations()]);
   }
 
   @override
@@ -117,6 +122,94 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       await prefs.setString('cache_all_products', jsonEncode(_allProducts));
     } catch (e) {
       debugPrint("Error saving cache: $e");
+    }
+  }
+
+  Future<void> _fetchNearbyProducts() async {
+    if (!mounted) return;
+    setState(() => _isLoadingNearby = true);
+
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          setState(() {
+            _locationMessage = 'Enable location to see nearby products.';
+            _nearbyProducts = [];
+            _isLoadingNearby = false;
+          });
+        }
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.low);
+      final data = await ApiService.get('products/products/nearby/', params: {
+        'lat': position.latitude.toString(),
+        'lon': position.longitude.toString(),
+        'limit': '6',
+      });
+
+      final List<dynamic> productsList = (data is Map && data.containsKey('results'))
+          ? List<dynamic>.from(data['results'])
+          : (data is List ? List<dynamic>.from(data) : []);
+
+      if (mounted) {
+        setState(() {
+          _nearbyProducts = productsList;
+          _locationMessage = null;
+          _isLoadingNearby = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Nearby products error: $e');
+      if (mounted) {
+        setState(() {
+          _locationMessage = 'Unable to load nearby products right now.';
+          _nearbyProducts = [];
+          _isLoadingNearby = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchRecommendations() async {
+    if (_allProducts.isEmpty) return;
+    setState(() => _isLoadingRecommendations = true);
+
+    try {
+      final productId = _allProducts.first['id'];
+      if (productId == null) {
+        if (mounted) setState(() => _isLoadingRecommendations = false);
+        return;
+      }
+
+      final data = await ApiService.get('products/products/recommendations/', params: {
+        'product_id': productId.toString(),
+        'limit': '6',
+      });
+
+      final List<dynamic> productsList = (data is Map && data.containsKey('results'))
+          ? List<dynamic>.from(data['results'])
+          : (data is List ? List<dynamic>.from(data) : []);
+
+      if (mounted) {
+        setState(() {
+          _recommendedProducts = productsList;
+          _isLoadingRecommendations = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Recommendations error: $e');
+      if (mounted) {
+        setState(() {
+          _recommendedProducts = [];
+          _isLoadingRecommendations = false;
+        });
+      }
     }
   }
 
@@ -204,6 +297,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
 
         // Trigger cache save in the background
         _saveDataToCache();
+        if (!isSearch) {
+          unawaited(_fetchNearbyProducts());
+          unawaited(_fetchRecommendations());
+        }
       }
     } catch (e) {
       debugPrint("Error fetching data: $e");
@@ -345,6 +442,69 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                       ),
                     ),
                     const SizedBox(height: 24),
+
+                    if (_nearbyProducts.isNotEmpty || _isLoadingNearby || _locationMessage != null) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("Nearby Products", style: AppTheme.lightTheme.textTheme.titleLarge),
+                          Text("Based on your location", style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (_isLoadingNearby)
+                        const Center(child: CircularProgressIndicator())
+                      else if (_nearbyProducts.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Text(_locationMessage ?? 'No nearby products available yet.'),
+                        )
+                      else
+                        SizedBox(
+                          height: 220,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _nearbyProducts.length,
+                            itemBuilder: (context, index) {
+                              final product = _nearbyProducts[index];
+                              return ProductCard(
+                                product: product,
+                                horizontal: true,
+                                onPop: () => _fetchData(isSilent: true),
+                              );
+                            },
+                          ),
+                        ),
+                      const SizedBox(height: 24),
+                    ],
+
+                    if (_recommendedProducts.isNotEmpty || _isLoadingRecommendations) ...[
+                      Text("Recommended For You", style: AppTheme.lightTheme.textTheme.titleLarge),
+                      const SizedBox(height: 12),
+                      if (_isLoadingRecommendations)
+                        const Center(child: CircularProgressIndicator())
+                      else
+                        SizedBox(
+                          height: 220,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _recommendedProducts.length,
+                            itemBuilder: (context, index) {
+                              final product = _recommendedProducts[index];
+                              return ProductCard(
+                                product: product,
+                                horizontal: true,
+                                onPop: () => _fetchData(isSilent: true),
+                              );
+                            },
+                          ),
+                        ),
+                      const SizedBox(height: 24),
+                    ],
 
                     // Famous Products
                     if (_famousProducts.isNotEmpty) ...[

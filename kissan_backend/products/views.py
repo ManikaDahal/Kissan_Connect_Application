@@ -7,6 +7,7 @@ from users.permissions import IsSeller, IsProductOwner
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from kissan_core.firebase_helper import send_push, send_push_to_many
+from .services import get_nearby_products, get_recommended_products
 
 class CategoryListCreateView(generics.ListCreateAPIView):
     queryset = Category.objects.all()
@@ -34,6 +35,35 @@ class ProductListCreateView(generics.ListCreateAPIView):
         ).prefetch_related(
             'reviews'
         ).filter(approval_status='approved')
+
+    @action(detail=False, methods=['get'], url_path='nearby')
+    def nearby(self, request):
+        try:
+            lat = float(request.query_params.get('lat'))
+            lon = float(request.query_params.get('lon'))
+        except (TypeError, ValueError):
+            return Response({'error': 'lat and lon query params are required'}, status=400)
+
+        radius_km = float(request.query_params.get('radius_km', 20))
+        limit = int(request.query_params.get('limit', 10))
+        products = get_nearby_products(lat, lon, radius_km=radius_km, limit=limit, queryset=self.get_queryset())
+        serializer = self.get_serializer(products, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='recommendations')
+    def recommendations(self, request):
+        product_id = request.query_params.get('product_id')
+        limit = int(request.query_params.get('limit', 6))
+
+        if product_id is not None:
+            try:
+                product_id = int(product_id)
+            except ValueError:
+                return Response({'error': 'product_id must be an integer'}, status=400)
+
+        products = get_recommended_products(product_id=product_id, limit=limit, queryset=self.get_queryset())
+        serializer = self.get_serializer(products, many=True)
+        return Response(serializer.data)
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Product.objects.select_related(
@@ -90,7 +120,7 @@ class SellerProductViewSet(viewsets.ModelViewSet):
                 if buyers:
                     send_push_to_many(
                         users=buyers,
-                        title='🌱 New Product on KissanConnect!',
+                        title='New Product on KissanConnect!',
                         body=f'{product.name} is now available. Check it out!',
                         data={'route': 'home'},
                     )
@@ -148,7 +178,7 @@ class SellerProductViewSet(viewsets.ModelViewSet):
                         if product.seller:
                             send_push(
                                 user=product.seller,
-                                title='💸 Discount Updated',
+                                title='Discount Updated',
                                 body=f'You added a discount to "{product.name}" for Rs {product.discount_price}.',
                                 data={'route': 'seller_dashboard'},
                             )
@@ -157,7 +187,7 @@ class SellerProductViewSet(viewsets.ModelViewSet):
                         if buyers:
                             send_push_to_many(
                                 users=buyers,
-                                title='💸 New Discount Alert!',
+                                title='New Discount Alert!',
                                 body=f'{product.name} is now available at a special discount of Rs {product.discount_price}.',
                                 data={'route': 'home'},
                             )

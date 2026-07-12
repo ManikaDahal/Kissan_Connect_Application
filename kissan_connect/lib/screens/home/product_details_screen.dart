@@ -4,6 +4,7 @@ import 'package:kissan_connect/widgets/product_card.dart';
 import 'package:kissan_connect/services/api_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kissan_connect/core/providers/cart_provider.dart';
+import 'package:kissan_connect/screens/chat/chat_screen.dart';
 
 class ProductDetailsScreen extends ConsumerStatefulWidget {
   final dynamic product;
@@ -90,6 +91,37 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
     } catch (e) {
       debugPrint("Error fetching similar products: $e");
       if (mounted) setState(() => _isLoadingSimilar = false);
+    }
+  }
+
+  Future<void> _openSellerChat() async {
+    if (_currentUserId == null || _currentProduct['seller'] == null) return;
+    if (_currentUserId == _currentProduct['seller']) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('You cannot chat with your own seller profile.')));
+      return;
+    }
+
+    try {
+      final response = await ApiService.post('chat/conversations/get_or_create/', {
+        'user_id': _currentProduct['seller'].toString(),
+      });
+      if (response is Map<String, dynamic> && response['conversation_id'] != null) {
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChatScreen(
+              conversationId: response['conversation_id'],
+              otherUserId: _currentProduct['seller'],
+              otherUserName: _currentProduct['shop_name'] ?? 'Seller',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Unable to open chat: $e')));
+      }
     }
   }
 
@@ -450,6 +482,21 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _openSellerChat,
+            icon: const Icon(Icons.chat_bubble_outline),
+            label: const Text('Message Seller'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryGreen,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
         ),
       ],
     );

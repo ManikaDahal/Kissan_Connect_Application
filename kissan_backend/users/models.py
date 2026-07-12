@@ -108,6 +108,8 @@ class SellerProfile(models.Model):
     shop_name = models.CharField(max_length=150)
     shop_description = models.TextField(blank=True)
     shop_address = models.TextField()
+    latitude = models.FloatField(null=True, blank=True, help_text="Optional seller latitude for nearby-product matching")
+    longitude = models.FloatField(null=True, blank=True, help_text="Optional seller longitude for nearby-product matching")
     citizenship_front = models.ImageField(upload_to='seller_docs/', null=True, blank=True)
     citizenship_back = models.ImageField(upload_to='seller_docs/', null=True, blank=True)
     PAN_NUMBER = models.CharField(max_length=20, blank=True, null=True)

@@ -59,7 +59,7 @@ class MessageViewSet(viewsets.ModelViewSet):
             try:
                 send_push(
                     user=recipient,
-                    title='💬 New message',
+                    title='New message',
                     body=f'{self.request.user.full_name or self.request.user.email}: {message.content[:80]}',
                     data={
                         'route': 'chat',

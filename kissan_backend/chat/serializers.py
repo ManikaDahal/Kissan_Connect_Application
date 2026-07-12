@@ -19,10 +19,11 @@ class ConversationSerializer(serializers.ModelSerializer):
     participant_name = serializers.SerializerMethodField()
     other_user_id = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
+    last_message_time = serializers.SerializerMethodField()
 
     class Meta:
         model = Conversation
-        fields = ['id', 'participant_a', 'participant_b', 'participant_name', 'other_user_id', 'last_message', 'created_at']
+        fields = ['id', 'participant_a', 'participant_b', 'participant_name', 'other_user_id', 'last_message', 'last_message_time', 'created_at']
 
     def _get_other_user(self, obj):
         request = self.context.get('request')
@@ -42,3 +43,7 @@ class ConversationSerializer(serializers.ModelSerializer):
     def get_last_message(self, obj):
         last_message = obj.messages.order_by('-created_at').first()
         return last_message.content if last_message else ''
+
+    def get_last_message_time(self, obj):
+        last_message = obj.messages.order_by('-created_at').first()
+        return last_message.created_at.isoformat() if last_message else None

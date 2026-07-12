@@ -42,6 +42,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Messages'),
+        centerTitle: true,
         backgroundColor: const Color(0xFF2E7D32),
         foregroundColor: Colors.white,
       ),
@@ -49,26 +50,41 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
           ? const Center(child: CircularProgressIndicator())
           : _conversations.isEmpty
               ? const Center(child: Text('No conversations yet'))
-              : ListView.builder(
+              : ListView.separated(
+                  padding: const EdgeInsets.all(12),
                   itemCount: _conversations.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final conversation = _conversations[index];
-                    return ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.person)),
-                      title: Text(conversation['participant_name'] ?? 'Conversation'),
-                      subtitle: Text(conversation['last_message'] ?? ''),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ChatScreen(
-                              conversationId: conversation['id'],
-                              otherUserId: conversation['other_user_id'],
-                              otherUserName: conversation['participant_name'] ?? 'Support',
+                    final lastMessageTime = conversation['last_message_time'];
+                    return Card(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      child: ListTile(
+                        leading: const CircleAvatar(
+                          backgroundColor: Color(0xFF2E7D32),
+                          child: Icon(Icons.person, color: Colors.white),
+                        ),
+                        title: Text(conversation['participant_name'] ?? 'Conversation'),
+                        subtitle: Text(conversation['last_message']?.toString().isNotEmpty == true ? conversation['last_message'] : 'Tap to start a conversation'),
+                        trailing: lastMessageTime != null
+                            ? Text(
+                                DateTime.parse(lastMessageTime.toString()).toLocal().toString().split(' ').first,
+                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                              )
+                            : null,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChatScreen(
+                                conversationId: conversation['id'],
+                                otherUserId: conversation['other_user_id'],
+                                otherUserName: conversation['participant_name'] ?? 'Support',
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     );
                   },
                 ),
