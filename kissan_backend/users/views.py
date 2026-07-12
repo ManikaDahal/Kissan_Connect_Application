@@ -401,3 +401,16 @@ class SupportTicketView(views.APIView):
             'ticket_id': ticket.id
         }, status=status.HTTP_201_CREATED)
 
+
+class FCMTokenView(views.APIView):
+    """Save or update the FCM device token for the authenticated user."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        token = request.data.get('fcm_token', '').strip()
+        if not token:
+            return Response({'error': 'fcm_token is required'}, status=400)
+        request.user.fcm_token = token
+        request.user.save(update_fields=['fcm_token'])
+        return Response({'message': 'FCM token saved'}, status=200)
+

@@ -34,6 +34,8 @@ class User(AbstractUser):
     is_verified = models.BooleanField(default=False)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='buyer')
     is_seller_verified = models.BooleanField(default=False)
+    fcm_token = models.CharField(max_length=512, blank=True, null=True,
+                                 help_text="Firebase Cloud Messaging device token for push notifications")
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name']

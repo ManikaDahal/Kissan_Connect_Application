@@ -1,10 +1,12 @@
 from rest_framework import generics, permissions, filters, viewsets
+import threading
 from .models import Category, Product, Review, CategorySuggestion
 from .serializers import CategorySerializer, ProductSerializer, ProductListSerializer, ReviewSerializer, CategorySuggestionSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from users.permissions import IsSeller, IsProductOwner
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from kissan_core.firebase_helper import send_push, send_push_to_many
 
 class CategoryListCreateView(generics.ListCreateAPIView):
     queryset = Category.objects.all()
@@ -78,7 +80,28 @@ class SellerProductViewSet(viewsets.ModelViewSet):
         )
 
     def perform_create(self, serializer):
-        serializer.save(seller=self.request.user)
+        product = serializer.save(seller=self.request.user)
+
+        # --- Push Notification: Notify all buyers that a new product is available ---
+        def _notify_buyers():
+            try:
+                from users.models import User
+                tokens = list(
+                    User.objects.filter(role='buyer', fcm_token__isnull=False)
+                    .exclude(fcm_token='')
+                    .values_list('fcm_token', flat=True)
+                )
+                if tokens:
+                    send_push_to_many(
+                        tokens=tokens,
+                        title='🌱 New Product on KissanConnect!',
+                        body=f'{product.name} is now available. Check it out!',
+                        data={'route': 'home'},
+                    )
+            except Exception as e:
+                print(f'New product notification error: {e}')
+        threading.Thread(target=_notify_buyers).start()
+        # -------------------------------------------------------------------------
 
     @action(detail=True, methods=['patch'], url_path='update-stock')
     def update_stock(self, request, pk=None):

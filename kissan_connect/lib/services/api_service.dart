@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kissan_connect/core/utils/const.dart';
+import 'package:kissan_connect/services/notification_service.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -37,6 +38,8 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('access_token', access);
     await prefs.setString('refresh_token', refresh);
+    // Register this device's FCM push token with the backend
+    NotificationService.sendTokenToServer();
   }
 
   static Future<void> clearTokens() async {

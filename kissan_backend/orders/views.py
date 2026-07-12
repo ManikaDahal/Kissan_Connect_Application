@@ -1,6 +1,7 @@
 import stripe
 import os
 import requests
+import threading
 from decimal import Decimal
 from django.conf import settings
 from rest_framework import viewsets, permissions, status, views
@@ -11,6 +12,7 @@ from .models import Order, OrderItem, Transaction
 from .serializers import OrderSerializer
 from products.models import Product
 from users.models import UserAddress
+from kissan_core.firebase_helper import send_push, send_push_to_many
 
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
 
@@ -117,6 +119,30 @@ class OrderViewSet(viewsets.ModelViewSet):
         for item in order_items:
             item.order = order
             item.save()
+
+        # --- Push Notification: Notify each seller their product was ordered ---
+        def _notify_sellers():
+            try:
+                seller_map = {}
+                for item in order.items.select_related('product__seller').all():
+                    if item.product and item.product.seller:
+                        seller = item.product.seller
+                        if seller not in seller_map:
+                            seller_map[seller] = []
+                        seller_map[seller].append(item.product.name)
+                for seller, products in seller_map.items():
+                    if seller.fcm_token:
+                        product_list = ', '.join(products)
+                        send_push(
+                            token=seller.fcm_token,
+                            title='New Order Received!',
+                            body=f'A buyer ordered: {product_list}. Check your dashboard.',
+                            data={'route': 'seller_orders'},
+                        )
+            except Exception as e:
+                print(f'Order notification error: {e}')
+        threading.Thread(target=_notify_sellers).start()
+        # -----------------------------------------------------------------------
 
         serializer = self.get_serializer(order)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -320,6 +346,24 @@ def update_item_status(request, item_id):
 
     item.status = new_status
     item.save()
+
+    # --- Push Notification: Notify buyer when seller updates item status ---
+    def _notify_buyer():
+        try:
+            buyer = item.order.user
+            if buyer.fcm_token:
+                status_messages = {
+                    'shipped':   ('Order Shipped!',    f'Your "{item.product.name if item.product else "item"}" has been shipped and is on its way!'),
+                    'delivered': ('Order Delivered!',  f'Your "{item.product.name if item.product else "item"}" has been delivered. Enjoy!'),
+                    'cancelled': ('Order Cancelled',   f'Your order for "{item.product.name if item.product else "item"}" has been cancelled.'),
+                }
+                if new_status in status_messages:
+                    title, body = status_messages[new_status]
+                    send_push(token=buyer.fcm_token, title=title, body=body, data={'route': 'orders'})
+        except Exception as e:
+            print(f'Item status notification error: {e}')
+    threading.Thread(target=_notify_buyer).start()
+    # -----------------------------------------------------------------------
 
     # When seller marks item delivered, release the held transaction funds
     if new_status == 'delivered':

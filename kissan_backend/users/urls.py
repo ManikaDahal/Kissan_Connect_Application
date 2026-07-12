@@ -5,7 +5,7 @@ from .views import (
     LoginView, LogoutView, GoogleLoginView,
     ForgotPasswordView, VerifyResetOTPView, ResetPasswordView,
     ChangePasswordView, ProfileView, BiometricTokenRefreshView,
-    SellerApplyView, SellerStatusView, SupportTicketView,
+    SellerApplyView, SellerStatusView, SupportTicketView, FCMTokenView,
 )
 
 urlpatterns = [
@@ -32,6 +32,9 @@ urlpatterns = [
     
     # Customer Support Ticket
     path('support/ticket/',   SupportTicketView.as_view(),   name='support-ticket'),
+
+    # Push Notifications — FCM token registration
+    path('fcm-token/',        FCMTokenView.as_view(),         name='fcm-token'),
 ]
 
 from rest_framework.routers import DefaultRouter
