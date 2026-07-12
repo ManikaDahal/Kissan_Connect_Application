@@ -132,6 +132,29 @@ class SellerProfile(models.Model):
             self.user.role = 'seller'
             self.user.is_seller_verified = True
             self.user.save()
+            
+        # Automatically geocode shop_address into coordinates if not set
+        if self.shop_address and (self.latitude is None or self.longitude is None):
+            try:
+                import urllib.request
+                import urllib.parse
+                import json
+                
+                url = "https://nominatim.openstreetmap.org/search?" + urllib.parse.urlencode({
+                    'q': self.shop_address,
+                    'format': 'json',
+                    'limit': 1
+                })
+                req = urllib.request.Request(url, headers={'User-Agent': 'KissanConnect/1.0'})
+                with urllib.request.urlopen(req, timeout=5) as response:
+                    res_data = json.loads(response.read().decode('utf-8'))
+                    if res_data:
+                        self.latitude = float(res_data[0]['lat'])
+                        self.longitude = float(res_data[0]['lon'])
+            except Exception as e:
+                # Silently catch exceptions to avoid breaking saves if network/api is down
+                pass
+                
         super().save(*args, **kwargs)
 
     def __str__(self):

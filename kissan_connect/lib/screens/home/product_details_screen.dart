@@ -71,22 +71,18 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
 
   Future<void> _fetchSimilarProducts() async {
     try {
-      final categoryId = widget.product['category'];
-      if (categoryId != null) {
-        final data = await ApiService.get('products/products/', params: {
-          'category': categoryId.toString(),
+      final data = await ApiService.get('products/products/recommendations/', params: {
+        'product_id': widget.product['id'].toString(),
+        'limit': '6',
+      });
+      if (mounted) {
+        final List<dynamic> productsList = (data is Map && data.containsKey('results'))
+            ? data['results']
+            : (data is List ? data : []);
+        setState(() {
+          _similarProducts = productsList;
+          _isLoadingSimilar = false;
         });
-        if (mounted) {
-          final List<dynamic> productsList = (data is Map && data.containsKey('results'))
-              ? data['results']
-              : (data is List ? data : []);
-          setState(() {
-            _similarProducts = productsList
-                .where((p) => p['id'] != widget.product['id'])
-                .toList();
-            _isLoadingSimilar = false;
-          });
-        }
       }
     } catch (e) {
       debugPrint("Error fetching similar products: $e");
