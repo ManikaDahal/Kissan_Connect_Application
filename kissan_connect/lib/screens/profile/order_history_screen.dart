@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kissan_connect/core/models/order_model.dart';
 import 'package:kissan_connect/services/api_service.dart';
 import 'package:intl/intl.dart';
+import 'package:kissan_connect/screens/chat/chat_screen.dart';
 import 'package:kissan_connect/widgets/shimmer_loading.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
@@ -161,6 +162,39 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
               Icons.payment_outlined,
               "Payment Method",
               order.paymentGateway.toUpperCase(),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  try {
+                    final response = await ApiService.post('chat/conversations/get_or_create/', {
+                      'user_id': order.items.isNotEmpty ? order.items.first.productId ?? 0 : 0,
+                    });
+                    if (response is Map && response['conversation_id'] != null) {
+                      if (!mounted) return;
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChatScreen(
+                            conversationId: response['conversation_id'],
+                            otherUserId: order.items.isNotEmpty ? order.items.first.productId ?? 0 : 0,
+                            otherUserName: 'Seller Support',
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Unable to start chat: $e')));
+                    }
+                  }
+                },
+                icon: const Icon(Icons.chat_bubble_outline),
+                label: const Text('Chat with seller'),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
+              ),
             ),
           ],
         ),

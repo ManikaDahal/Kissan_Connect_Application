@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kissan_connect/core/providers/nav_provider.dart';
+import 'package:kissan_connect/screens/chat/conversation_list_screen.dart';
 import 'package:kissan_connect/screens/home/home_screen.dart';
 import 'package:kissan_connect/screens/home/categories_screen.dart';
 import 'package:kissan_connect/screens/home/cart_screen.dart';
@@ -21,6 +22,7 @@ class _BottomNavBarState extends ConsumerState<BottomNavBar> {
     const HomeScreen(),
     const CategoriesScreen(),
     const CartScreen(),
+    const ConversationListScreen(),
     const ProfileScreen(),
   ];
 
@@ -64,6 +66,11 @@ class _BottomNavBarState extends ConsumerState<BottomNavBar> {
               child: const Icon(Icons.shopping_cart_outlined),
             ),
             label: 'Cart',
+          ),
+          const NavigationDestination(
+            selectedIcon: Icon(Icons.message),
+            icon: Icon(Icons.message_outlined),
+            label: 'Messages',
           ),
           const NavigationDestination(
             selectedIcon: Icon(Icons.person),

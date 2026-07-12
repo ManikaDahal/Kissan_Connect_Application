@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:kissan_connect/core/utils/const.dart';
 import 'package:kissan_connect/core/utils/route_const.dart';
+import 'package:kissan_connect/screens/chat/chat_screen.dart';
 import 'package:kissan_connect/services/api_service.dart';
 
 /// Top-level handler for background messages (must be outside a class).
@@ -115,10 +116,12 @@ class NotificationService {
   static void _handleRoute(String? route) {
     if (route == null || route.trim().isEmpty) return;
 
+    final normalizedRoute = route.trim();
+
     final context = Constants.navigatorKey.currentContext;
     if (context == null) return;
 
-    switch (route.trim()) {
+    switch (normalizedRoute) {
       case 'home':
         _navigateToRoute(context, Routes.bottomNavBarRoute);
         break;
@@ -134,6 +137,9 @@ class NotificationService {
       case 'notifications':
         _navigateToRoute(context, Routes.notificationsRoute);
         break;
+      case 'chat':
+        _openChat(context, route);
+        break;
       default:
         _navigateToRoute(context, Routes.notificationsRoute);
         break;
@@ -145,5 +151,35 @@ class NotificationService {
     if (currentRouteName == targetRoute) return;
 
     Navigator.of(context).pushNamedAndRemoveUntil(targetRoute, (route) => false);
+  }
+
+  static void _openChat(BuildContext context, String route) {
+    final data = route.split('?').length > 1 ? route.split('?').last : '';
+    final params = <String, String>{};
+    for (final pair in data.split('&')) {
+      final parts = pair.split('=');
+      if (parts.length == 2) {
+        params[parts[0]] = parts[1];
+      }
+    }
+
+    final conversationId = int.tryParse(params['conversation_id'] ?? '0') ?? 0;
+    final otherUserId = int.tryParse(params['other_user_id'] ?? '0') ?? 0;
+    final otherUserName = Uri.decodeComponent(params['other_user_name'] ?? 'Support');
+
+    if (conversationId <= 0 || otherUserId <= 0) {
+      _navigateToRoute(context, Routes.conversationsRoute);
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChatScreen(
+          conversationId: conversationId,
+          otherUserId: otherUserId,
+          otherUserName: otherUserName,
+        ),
+      ),
+    );
   }
 }

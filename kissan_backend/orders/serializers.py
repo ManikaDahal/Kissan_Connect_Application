@@ -5,10 +5,13 @@ from users.serializers import AddressSerializer
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product_name = serializers.ReadOnlyField(source='product.name')
+    seller_id = serializers.ReadOnlyField(source='product.seller.id')
+    seller_name = serializers.ReadOnlyField(source='product.seller.full_name')
+    seller_email = serializers.ReadOnlyField(source='product.seller.email')
 
     class Meta:
         model = OrderItem
-        fields = ['id', 'product', 'product_name', 'quantity', 'price', 'status']
+        fields = ['id', 'product', 'product_name', 'seller_id', 'seller_name', 'seller_email', 'quantity', 'price', 'status']
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)

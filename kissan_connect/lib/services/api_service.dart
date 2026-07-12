@@ -38,8 +38,8 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('access_token', access);
     await prefs.setString('refresh_token', refresh);
-    // Register this device's FCM push token with the backend
-    NotificationService.sendTokenToServer();
+    // Register this device's FCM push token with the backend for the newly signed-in account.
+    await NotificationService.sendTokenToServer();
   }
 
   static Future<void> clearTokens() async {

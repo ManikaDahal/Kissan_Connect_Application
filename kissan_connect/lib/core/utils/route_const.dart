@@ -20,4 +20,6 @@ class Routes {
   static const ordersRoute = "/orders";
   static const sellerOrdersRoute = "/sellerOrders";
   static const sellerDashboardRoute = "/sellerDashboard";
+  static const conversationsRoute = "/conversations";
+  static const chatRoute = "/chat";
 }

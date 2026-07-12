@@ -27,6 +27,7 @@ urlpatterns = [
     path('api/cart/', include('cart.urls')),
     path('api/', include('orders.urls')),
     path('api/notifications/', include('notifications.urls')),
+    path('api/chat/', include('chat.urls')),
 ]
 
 if settings.DEBUG:

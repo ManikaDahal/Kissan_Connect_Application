@@ -216,41 +216,18 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                         vertical: 8,
                                       ),
                                       leading: CircleAvatar(
-                                        backgroundColor: isRead
-                                            ? Colors.grey.shade100
-                                            : AppTheme.primaryGreen.withOpacity(0.1),
-                                        child: Icon(
-                                          isRead
-                                              ? Icons.notifications_none
-                                              : Icons.notifications_active,
-                                          color: isRead
-                                              ? Colors.grey
-                                              : AppTheme.primaryGreen,
+                                        backgroundColor: AppTheme.primaryGreen.withOpacity(0.12),
+                                        child: const Icon(
+                                          Icons.notifications_active,
+                                          color: AppTheme.primaryGreen,
                                         ),
                                       ),
-                                      title: Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              item['title'] ?? 'Notification',
-                                              style: TextStyle(
-                                                fontWeight: isRead
-                                                    ? FontWeight.w600
-                                                    : FontWeight.bold,
-                                                fontSize: 16,
-                                              ),
-                                            ),
-                                          ),
-                                          if (!isRead)
-                                            Container(
-                                              width: 8,
-                                              height: 8,
-                                              decoration: const BoxDecoration(
-                                                color: Colors.green,
-                                                shape: BoxShape.circle,
-                                              ),
-                                            ),
-                                        ],
+                                      title: Text(
+                                        item['title'] ?? 'Notification',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
                                       ),
                                       subtitle: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,

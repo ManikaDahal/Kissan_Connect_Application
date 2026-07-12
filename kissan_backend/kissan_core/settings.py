@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     'django_filters',
     'cart',
     'notifications',
+    'chat',
 ]
 
 MIDDLEWARE = [

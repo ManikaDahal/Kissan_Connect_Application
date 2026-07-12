@@ -335,6 +335,7 @@ def seller_orders(request):
         if order.id not in orders_dict:
             orders_dict[order.id] = {
                 'id': order.id,
+                'buyer_id': order.user.id,
                 'buyer_email': order.user.email,
                 'buyer_name': order.user.full_name,
                 'status': order.status,

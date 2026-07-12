@@ -207,7 +207,7 @@ class BiometricTokenRefreshView(TokenRefreshView):
 #Logout
 
 class LogoutView(views.APIView):
-    """Blacklist the refresh token to log out."""
+    """Blacklist the refresh token to log out and clear the stored FCM token for this account."""
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -215,9 +215,12 @@ class LogoutView(views.APIView):
             refresh_token = request.data.get('refresh')
             token = RefreshToken(refresh_token)
             token.blacklist()
-            return Response({'message': 'Logged out successfully'}, status=200)
         except Exception:
             return Response({'error': 'Invalid token'}, status=400)
+
+        request.user.fcm_token = ''
+        request.user.save(update_fields=['fcm_token'])
+        return Response({'message': 'Logged out successfully'}, status=200)
 
 
 
@@ -410,7 +413,16 @@ class FCMTokenView(views.APIView):
         token = request.data.get('fcm_token', '').strip()
         if not token:
             return Response({'error': 'fcm_token is required'}, status=400)
+
+        if request.user.fcm_token != token:
+            User.objects.filter(fcm_token=token).exclude(id=request.user.id).update(fcm_token='')
+
         request.user.fcm_token = token
         request.user.save(update_fields=['fcm_token'])
-        return Response({'message': 'FCM token saved'}, status=200)
+
+        return Response({
+            'message': 'FCM token saved',
+            'user_id': request.user.id,
+            'role': request.user.role,
+        }, status=200)
 

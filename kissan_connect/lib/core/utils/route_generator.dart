@@ -6,6 +6,8 @@ import 'package:kissan_connect/features/auth/presentation/pages/login_page.dart'
 import 'package:kissan_connect/features/auth/presentation/pages/otp_verification_page.dart';
 import 'package:kissan_connect/features/auth/presentation/pages/reset_password_page.dart';
 import 'package:kissan_connect/features/auth/presentation/pages/signup_page.dart';
+import 'package:kissan_connect/screens/chat/chat_screen.dart';
+import 'package:kissan_connect/screens/chat/conversation_list_screen.dart';
 import 'package:kissan_connect/screens/home/category_products_screen.dart';
 import 'package:kissan_connect/screens/home/checkout_screen.dart';
 import 'package:kissan_connect/screens/home/product_details_screen.dart';
@@ -118,6 +120,22 @@ class RouteGenerator {
       case Routes.sellerDashboardRoute:
         return MaterialPageRoute(
           builder: (_) => const SellerDashboardScreen(),
+        );
+
+      case Routes.conversationsRoute:
+        return MaterialPageRoute(
+          builder: (_) => const ConversationListScreen(),
+        );
+
+      case Routes.chatRoute:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            conversationId: args?['conversationId'] ?? 0,
+            otherUserId: args?['otherUserId'] ?? 0,
+            otherUserName: args?['otherUserName'] ?? 'Support',
+            initialMessage: args?['initialMessage'],
+          ),
         );
 
       default:

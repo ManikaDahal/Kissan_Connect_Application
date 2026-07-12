@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kissan_connect/screens/chat/chat_screen.dart';
 import 'package:kissan_connect/services/api_service.dart';
 import 'package:kissan_connect/widgets/shimmer_loading.dart';
 
@@ -330,6 +331,39 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
                           color: Color(0xFF2E7D32)),
                     ),
                   ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      try {
+                        final response = await ApiService.post('chat/conversations/get_or_create/', {
+                          'user_id': order['buyer_id'] ?? 0,
+                        });
+                        if (response is Map && response['conversation_id'] != null) {
+                          if (!mounted) return;
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChatScreen(
+                                conversationId: response['conversation_id'],
+                                otherUserId: order['buyer_id'] ?? 0,
+                                otherUserName: order['buyer_name'] ?? 'Buyer',
+                              ),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Unable to start chat: $e')));
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.chat_bubble_outline),
+                    label: const Text('Chat with buyer'),
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
+                  ),
                 ),
               ],
             ),
