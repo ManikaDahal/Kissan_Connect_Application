@@ -21,6 +21,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
   bool _isLoadingSimilar = true;
   bool _isLoadingProduct = true;
   bool _isSubmittingReview = false;
+  bool _isOpeningChat = false;
   final TextEditingController _reviewController = TextEditingController();
   double _selectedRating = 5.0;
   int? _currentUserId;
@@ -91,11 +92,14 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
   }
 
   Future<void> _openSellerChat() async {
+    if (_isOpeningChat) return;
     if (_currentUserId == null || _currentProduct['seller'] == null) return;
     if (_currentUserId == _currentProduct['seller']) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('You cannot chat with your own seller profile.')));
       return;
     }
+
+    setState(() => _isOpeningChat = true);
 
     try {
       final response = await ApiService.post('chat/conversations/get_or_create/', {
@@ -118,6 +122,8 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Unable to open chat: $e')));
       }
+    } finally {
+      if (mounted) setState(() => _isOpeningChat = false);
     }
   }
 
@@ -483,12 +489,23 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: _openSellerChat,
-            icon: const Icon(Icons.chat_bubble_outline),
-            label: const Text('Message Seller'),
+            onPressed: _isOpeningChat ? null : _openSellerChat,
+            icon: _isOpeningChat
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Icon(Icons.chat_bubble_outline),
+            label: Text(_isOpeningChat ? 'Opening Chat...' : 'Message Seller'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryGreen,
               foregroundColor: Colors.white,
+              disabledBackgroundColor: AppTheme.primaryGreen.withOpacity(0.6),
+              disabledForegroundColor: Colors.white70,
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -579,6 +596,10 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
                         ),
                         const SizedBox(height: 8),
                         Text(review['comment'] ?? ""),
+                        if (review['sentiment'] != null) ...[
+                          const SizedBox(height: 6),
+                          _buildSentimentBadge(review['sentiment']),
+                        ],
                       ],
                     ),
                   );
@@ -588,6 +609,41 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
         const Divider(),
         _buildReviewForm(),
       ],
+    );
+  }
+  Widget _buildSentimentBadge(dynamic sentiment) {
+    final String label = sentiment['label'] ?? 'neutral';
+    Color bgColor;
+    Color textColor;
+    String emoji;
+
+    switch (label) {
+      case 'positive':
+        bgColor = Colors.green.shade50;
+        textColor = Colors.green.shade700;
+        emoji = '😊';
+        break;
+      case 'negative':
+        bgColor = Colors.red.shade50;
+        textColor = Colors.red.shade700;
+        emoji = '😞';
+        break;
+      default:
+        bgColor = Colors.grey.shade100;
+        textColor = Colors.grey.shade600;
+        emoji = '😐';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        '$emoji ${label[0].toUpperCase()}${label.substring(1)}',
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textColor),
+      ),
     );
   }
 

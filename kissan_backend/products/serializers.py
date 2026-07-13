@@ -17,11 +17,16 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class ReviewSerializer(serializers.ModelSerializer):
     username = serializers.ReadOnlyField(source='user.full_name')
+    sentiment = serializers.SerializerMethodField()
 
     class Meta:
         model = Review
-        fields = ('id', 'product', 'user', 'username', 'rating', 'comment', 'created_at')
+        fields = ('id', 'product', 'user', 'username', 'rating', 'comment', 'sentiment', 'created_at')
         read_only_fields = ('user',)
+
+    def get_sentiment(self, obj):
+        from .services import analyze_sentiment
+        return analyze_sentiment(obj.comment)
 
 
 class ProductSerializer(serializers.ModelSerializer):

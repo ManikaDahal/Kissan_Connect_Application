@@ -36,8 +36,15 @@ class ProductListCreateView(generics.ListCreateAPIView):
             'reviews'
         ).filter(approval_status='approved')
 
-    @action(detail=False, methods=['get'], url_path='nearby')
-    def nearby(self, request):
+
+from rest_framework.views import APIView
+
+
+class NearbyProductsView(APIView):
+    """Return products whose seller is within a radius of the given coordinates."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
         try:
             lat = float(request.query_params.get('lat'))
             lon = float(request.query_params.get('lon'))
@@ -46,12 +53,19 @@ class ProductListCreateView(generics.ListCreateAPIView):
 
         radius_km = float(request.query_params.get('radius_km', 20))
         limit = int(request.query_params.get('limit', 10))
-        products = get_nearby_products(lat, lon, radius_km=radius_km, limit=limit, queryset=self.get_queryset())
-        serializer = self.get_serializer(products, many=True)
+        queryset = Product.objects.select_related(
+            'category', 'seller', 'seller__seller_profile'
+        ).prefetch_related('reviews').filter(approval_status='approved')
+        products = get_nearby_products(lat, lon, radius_km=radius_km, limit=limit, queryset=queryset)
+        serializer = ProductListSerializer(products, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], url_path='recommendations')
-    def recommendations(self, request):
+
+class RecommendedProductsView(APIView):
+    """Return recommended products using cosine similarity."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
         product_id = request.query_params.get('product_id')
         limit = int(request.query_params.get('limit', 6))
 
@@ -61,8 +75,11 @@ class ProductListCreateView(generics.ListCreateAPIView):
             except ValueError:
                 return Response({'error': 'product_id must be an integer'}, status=400)
 
-        products = get_recommended_products(product_id=product_id, limit=limit, queryset=self.get_queryset())
-        serializer = self.get_serializer(products, many=True)
+        queryset = Product.objects.select_related(
+            'category', 'seller', 'seller__seller_profile'
+        ).prefetch_related('reviews').filter(approval_status='approved')
+        products = get_recommended_products(product_id=product_id, limit=limit, queryset=queryset)
+        serializer = ProductListSerializer(products, many=True)
         return Response(serializer.data)
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -110,24 +127,9 @@ class SellerProductViewSet(viewsets.ModelViewSet):
         )
 
     def perform_create(self, serializer):
-        product = serializer.save(seller=self.request.user)
-
-        # --- Push Notification: Notify all buyers that a new product is available ---
-        def _notify_buyers():
-            try:
-                from users.models import User
-                buyers = list(User.objects.filter(role='buyer'))
-                if buyers:
-                    send_push_to_many(
-                        users=buyers,
-                        title='New Product on KissanConnect!',
-                        body=f'{product.name} is now available. Check it out!',
-                        data={'route': 'home'},
-                    )
-            except Exception as e:
-                print(f'New product notification error: {e}')
-        threading.Thread(target=_notify_buyers).start()
-        # -------------------------------------------------------------------------
+        serializer.save(seller=self.request.user)
+        # NOTE: No notification here. Product is still 'pending' approval.
+        # The signal in signals.py handles notifying everyone after admin approval.
 
     @action(detail=True, methods=['patch'], url_path='update-stock')
     def update_stock(self, request, pk=None):
@@ -175,20 +177,15 @@ class SellerProductViewSet(viewsets.ModelViewSet):
                 def _notify_discount():
                     try:
                         from users.models import User
-                        if product.seller:
-                            send_push(
-                                user=product.seller,
-                                title='Discount Updated',
-                                body=f'You added a discount to "{product.name}" for Rs {product.discount_price}.',
-                                data={'route': 'seller_dashboard'},
-                            )
-
-                        buyers = list(User.objects.filter(role='buyer'))
-                        if buyers:
+                        # Notify ALL users except the seller who added the discount
+                        other_users = list(
+                            User.objects.exclude(id=product.seller.id)
+                        )
+                        if other_users:
                             send_push_to_many(
-                                users=buyers,
+                                users=other_users,
                                 title='New Discount Alert!',
-                                body=f'{product.name} is now available at a special discount of Rs {product.discount_price}.',
+                                body=f'{product.name} is now available at a special discount of Rs {product.discount_price}!',
                                 data={'route': 'home'},
                             )
                     except Exception as e:
