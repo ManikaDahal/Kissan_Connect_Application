@@ -4,7 +4,7 @@ import 'package:kissan_connect/widgets/product_card.dart';
 import 'package:kissan_connect/services/api_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kissan_connect/core/providers/cart_provider.dart';
-import 'package:kissan_connect/screens/chat/chat_screen.dart';
+
 
 class ProductDetailsScreen extends ConsumerStatefulWidget {
   final dynamic product;
@@ -21,10 +21,16 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
   bool _isLoadingSimilar = true;
   bool _isLoadingProduct = true;
   bool _isSubmittingReview = false;
-  bool _isOpeningChat = false;
   final TextEditingController _reviewController = TextEditingController();
   double _selectedRating = 5.0;
   int? _currentUserId;
+  
+  // Reviews Pagination State
+  int _reviewsPage = 1;
+  List<dynamic> _paginatedReviews = [];
+  bool _isLoadingReviews = true;
+  bool _hasNextReviews = false;
+  bool _hasPreviousReviews = false;
 
   @override
   void initState() {
@@ -37,7 +43,41 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
     });
     _fetchProductDetails();
     _fetchSimilarProducts();
+    _fetchReviews();
     _fetchUserProfile();
+  }
+
+  Future<void> _fetchReviews() async {
+    if (!mounted) return;
+    setState(() => _isLoadingReviews = true);
+    try {
+      final data = await ApiService.get('products/reviews/', params: {
+        'product': widget.product['id'].toString(),
+        'page': _reviewsPage.toString(),
+      });
+      if (mounted) {
+        setState(() {
+          if (data is Map) {
+            _paginatedReviews = data['results'] ?? [];
+            _hasNextReviews = data['next'] != null;
+            _hasPreviousReviews = data['previous'] != null;
+          } else {
+            _paginatedReviews = data is List ? data : [];
+            _hasNextReviews = false;
+            _hasPreviousReviews = false;
+          }
+          _isLoadingReviews = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching reviews: $e");
+      if (mounted) {
+        setState(() {
+          _paginatedReviews = [];
+          _isLoadingReviews = false;
+        });
+      }
+    }
   }
 
   Future<void> _fetchUserProfile() async {
@@ -91,41 +131,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
     }
   }
 
-  Future<void> _openSellerChat() async {
-    if (_isOpeningChat) return;
-    if (_currentUserId == null || _currentProduct['seller'] == null) return;
-    if (_currentUserId == _currentProduct['seller']) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('You cannot chat with your own seller profile.')));
-      return;
-    }
 
-    setState(() => _isOpeningChat = true);
-
-    try {
-      final response = await ApiService.post('chat/conversations/get_or_create/', {
-        'user_id': _currentProduct['seller'].toString(),
-      });
-      if (response is Map<String, dynamic> && response['conversation_id'] != null) {
-        if (!mounted) return;
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ChatScreen(
-              conversationId: response['conversation_id'],
-              otherUserId: _currentProduct['seller'],
-              otherUserName: _currentProduct['shop_name'] ?? 'Seller',
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Unable to open chat: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _isOpeningChat = false);
-    }
-  }
 
   Future<void> _submitReview() async {
     if (_reviewController.text.isEmpty || _isSubmittingReview) return;
@@ -139,13 +145,15 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
         'comment': _reviewController.text,
       });
       
-      // Fetch updated product to immediately show the new review and updated rating
+       // Fetch updated product to immediately show the new review and updated rating
       final updatedProduct = await ApiService.get('products/products/${_currentProduct['id']}/');
       
       if (mounted) {
         setState(() {
           _currentProduct = updatedProduct;
+          _reviewsPage = 1;
         });
+        _fetchReviews();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Review submitted successfully!")),
         );
@@ -485,32 +493,6 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: _isOpeningChat ? null : _openSellerChat,
-            icon: _isOpeningChat
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : const Icon(Icons.chat_bubble_outline),
-            label: Text(_isOpeningChat ? 'Opening Chat...' : 'Message Seller'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryGreen,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: AppTheme.primaryGreen.withOpacity(0.6),
-              disabledForegroundColor: Colors.white70,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -527,7 +509,6 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
   }
 
   Widget _buildReviewsTab(dynamic product) {
-    final List<dynamic> reviews = product['reviews'] ?? [];
     final double avgRating = (product['average_rating'] ?? 0.0).toDouble();
     final int totalReviews = product['total_reviews'] ?? 0;
     
@@ -547,64 +528,110 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
           ],
         ),
         const SizedBox(height: 16),
-        if (_isLoadingProduct)
+        if (_isLoadingReviews)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 32),
             child: Center(child: CircularProgressIndicator()),
           )
-        else if (reviews.isEmpty)
+        else if (_paginatedReviews.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 32),
             child: Center(child: Text("No reviews yet. Be the first!")),
           )
-        else
+        else ...[
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             padding: EdgeInsets.zero,
-            itemCount: reviews.length,
+            itemCount: _paginatedReviews.length,
             itemBuilder: (context, index) {
-                  final review = reviews[index];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              final review = _paginatedReviews[index];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 12,
-                              backgroundColor: AppTheme.primaryGreen.withOpacity(0.1),
-                              child: Text(review['username']?[0] ?? '?', style: const TextStyle(fontSize: 10)),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(review['username'] ?? "User", style: const TextStyle(fontWeight: FontWeight.bold)),
-                            const Spacer(),
-                            Row(
-                              children: List.generate(5, (i) => Icon(
-                                Icons.star, 
-                                size: 12, 
-                                color: i < review['rating'] ? Colors.amber : Colors.grey[300]
-                              )),
-                            ),
-                          ],
+                        CircleAvatar(
+                          radius: 12,
+                          backgroundColor: AppTheme.primaryGreen.withOpacity(0.1),
+                          child: Text(review['username']?[0] ?? '?', style: const TextStyle(fontSize: 10)),
                         ),
-                        const SizedBox(height: 8),
-                        Text(review['comment'] ?? ""),
-                        if (review['sentiment'] != null) ...[
-                          const SizedBox(height: 6),
-                          _buildSentimentBadge(review['sentiment']),
-                        ],
+                        const SizedBox(width: 8),
+                        Text(review['username'] ?? "User", style: const TextStyle(fontWeight: FontWeight.bold)),
+                        const Spacer(),
+                        Row(
+                          children: List.generate(5, (i) => Icon(
+                            Icons.star, 
+                            size: 12, 
+                            color: i < review['rating'] ? Colors.amber : Colors.grey[300]
+                          )),
+                        ),
                       ],
                     ),
-                  );
-                },
+                    const SizedBox(height: 8),
+                    Text(review['comment'] ?? ""),
+                    if (review['sentiment'] != null) ...[
+                      const SizedBox(height: 6),
+                      _buildSentimentBadge(review['sentiment']),
+                    ],
+                  ],
+                ),
+              );
+            },
+          ),
+          if (_hasNextReviews || _hasPreviousReviews)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left, color: AppTheme.primaryGreen),
+                    onPressed: _hasPreviousReviews
+                        ? () {
+                            setState(() {
+                              _reviewsPage--;
+                            });
+                            _fetchReviews();
+                          }
+                        : null,
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      "Page $_reviewsPage",
+                      style: const TextStyle(
+                        color: AppTheme.primaryGreen,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right, color: AppTheme.primaryGreen),
+                    onPressed: _hasNextReviews
+                        ? () {
+                            setState(() {
+                              _reviewsPage++;
+                            });
+                            _fetchReviews();
+                          }
+                        : null,
+                  ),
+                ],
               ),
+            ),
+        ],
         const SizedBox(height: 24),
         const Divider(),
         _buildReviewForm(),

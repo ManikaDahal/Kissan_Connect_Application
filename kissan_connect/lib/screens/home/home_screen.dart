@@ -38,6 +38,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   int? _selectedCategory;
   String? _sortBy;
   Timer? _debounce;
+  int _allProductsPage = 1;
+  bool _hasNextAllProducts = false;
+  bool _hasPreviousAllProducts = false;
   int _unreadNotificationCount = 0;
 
   @override
@@ -213,7 +216,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     }
   }
 
-  Future<void> _fetchData({bool isSearch = false, bool isRefresh = false, bool isSilent = false}) async {
+  Future<void> _fetchData({bool isSearch = false, bool isRefresh = false, bool isSilent = false, bool resetPage = false}) async {
+    if (resetPage || isSearch || isRefresh) {
+      _allProductsPage = 1;
+    }
     if (isSearch) {
       setState(() => _isSearchLoading = true);
     } else if (!isRefresh && !isSilent && _allProducts.isEmpty) {
@@ -236,6 +242,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       
       // 1: Products (always)
       futures.add(ApiService.get('products/products/', params: {
+        'page': _allProductsPage.toString(),
         if (_searchQuery.isNotEmpty) 'search': _searchQuery,
         if (_selectedCategory != null) 'category': _selectedCategory.toString(),
         if (_sortBy != null) 'ordering': _sortBy!,
@@ -253,20 +260,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       } else {
         futures.add(Future.value(null));
       }
-
+ 
       // 3: Unread notifications count (always)
       futures.add(ApiService.get('notifications/unread-count/').catchError((e) {
         debugPrint("Unread notifications count error: $e");
         return null;
       }));
-
+ 
       // Execute all calls in parallel
       final results = await Future.wait(futures);
       final categoriesData = results[0];
       final productsData = results[1];
       final famousData = results[2];
       final unreadData = results[3];
-
+ 
       if (mounted) {
         setState(() {
           if (categoriesData != null) {
@@ -276,9 +283,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
           }
           
           if (productsData != null) {
-            _allProducts = (productsData is Map && productsData.containsKey('results')) 
-                ? productsData['results'] 
-                : productsData;
+            if (productsData is Map) {
+              _allProducts = productsData['results'] ?? [];
+              _hasNextAllProducts = productsData['next'] != null;
+              _hasPreviousAllProducts = productsData['previous'] != null;
+            } else {
+              _allProducts = productsData is List ? productsData : [];
+              _hasNextAllProducts = false;
+              _hasPreviousAllProducts = false;
+            }
           }
           
           if (famousData != null) {
@@ -591,6 +604,51 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                           onPop: () => _fetchData(isSilent: true),
                         );
                       },
+                    ),
+                  if (_allProducts.isNotEmpty && (_hasNextAllProducts || _hasPreviousAllProducts))
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left, color: AppTheme.primaryGreen),
+                            onPressed: _hasPreviousAllProducts
+                                ? () {
+                                    setState(() {
+                                      _allProductsPage--;
+                                    });
+                                    _fetchData(isSilent: true);
+                                  }
+                                : null,
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryGreen.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              "Page $_allProductsPage",
+                              style: const TextStyle(
+                                color: AppTheme.primaryGreen,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.chevron_right, color: AppTheme.primaryGreen),
+                            onPressed: _hasNextAllProducts
+                                ? () {
+                                    setState(() {
+                                      _allProductsPage++;
+                                    });
+                                    _fetchData(isSilent: true);
+                                  }
+                                : null,
+                          ),
+                        ],
+                      ),
                     ),
                   const SizedBox(height: 24),
                 ],

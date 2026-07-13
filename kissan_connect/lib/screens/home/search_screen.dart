@@ -17,9 +17,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   String _searchQuery = '';
-  List<dynamic> _searchResults = [];
-  bool _isLoading = false;
+  int _searchPage = 1;
+  bool _hasNextPage = false;
+  bool _hasPreviousPage = false;
   Timer? _debounce;
+  bool _isLoading = false;
+  List<dynamic> _searchResults = [];
 
   @override
   void initState() {
@@ -54,12 +57,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
 
     _debounce = Timer(const Duration(milliseconds: 500), () {
-      _fetchSearchResults(query.trim());
+      _fetchSearchResults(query.trim(), resetPage: true);
     });
   }
 
-  Future<void> _fetchSearchResults(String query) async {
+  Future<void> _fetchSearchResults(String query, {bool resetPage = false}) async {
     if (!mounted) return;
+    if (resetPage) {
+      _searchPage = 1;
+    }
     setState(() {
       _isLoading = true;
     });
@@ -67,11 +73,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     try {
       final response = await ApiService.get(
         'products/products/',
-        params: {'search': query},
+        params: {
+          'search': query,
+          'page': _searchPage.toString(),
+        },
       );
       if (mounted) {
         setState(() {
-          _searchResults = response is List ? response : [];
+          if (response is Map) {
+            _searchResults = response['results'] ?? [];
+            _hasNextPage = response['next'] != null;
+            _hasPreviousPage = response['previous'] != null;
+          } else {
+            _searchResults = response is List ? response : [];
+            _hasNextPage = false;
+            _hasPreviousPage = false;
+          }
           _isLoading = false;
         });
       }
@@ -229,19 +246,70 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   Widget _buildSearchResultsGrid() {
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.75,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-      ),
-      itemCount: _searchResults.length,
-      itemBuilder: (context, index) {
-        final product = _searchResults[index];
-        return ProductCard(product: product);
-      },
+    return Column(
+      children: [
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.75,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+            ),
+            itemCount: _searchResults.length,
+            itemBuilder: (context, index) {
+              final product = _searchResults[index];
+              return ProductCard(product: product);
+            },
+          ),
+        ),
+        if (_searchResults.isNotEmpty && (_hasNextPage || _hasPreviousPage))
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left, color: AppTheme.primaryGreen),
+                  onPressed: _hasPreviousPage
+                      ? () {
+                          setState(() {
+                            _searchPage--;
+                          });
+                          _fetchSearchResults(_searchQuery);
+                        }
+                      : null,
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    "Page $_searchPage",
+                    style: const TextStyle(
+                      color: AppTheme.primaryGreen,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right, color: AppTheme.primaryGreen),
+                  onPressed: _hasNextPage
+                      ? () {
+                          setState(() {
+                            _searchPage++;
+                          });
+                          _fetchSearchResults(_searchQuery);
+                        }
+                      : null,
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

@@ -33,12 +33,13 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
     try {
       final response = await ApiService.get('products/seller/my-items/');
       if (mounted) {
-        setState(() {
-          _myProducts = response;
+          _myProducts = (response is Map && response.containsKey('results'))
+              ? response['results']
+              : (response is List ? response : []);
           _isLoading = false;
-        });
+        };
       }
-    } catch (e) {
+    catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(

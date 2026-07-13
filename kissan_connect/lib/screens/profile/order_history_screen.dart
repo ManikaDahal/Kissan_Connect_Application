@@ -151,7 +151,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
               child: Text("Items", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
             ),
             const SizedBox(height: 10),
-            ...order.items.map((item) => _buildItemRow(item)),
+            ...order.items.map((item) => _buildItemRow(item, order)),
             const Divider(height: 24),
             if (order.shippingAddress != null) ...[
               _infoRow(Icons.location_on_outlined, "Shipping Address",
@@ -164,38 +164,6 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
               order.paymentGateway.toUpperCase(),
             ),
             const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  try {
-                    final response = await ApiService.post('chat/conversations/get_or_create/', {
-                      'user_id': order.items.isNotEmpty ? order.items.first.productId ?? 0 : 0,
-                    });
-                    if (response is Map && response['conversation_id'] != null) {
-                      if (!mounted) return;
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ChatScreen(
-                            conversationId: response['conversation_id'],
-                            otherUserId: order.items.isNotEmpty ? order.items.first.productId ?? 0 : 0,
-                            otherUserName: 'Seller Support',
-                          ),
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Unable to start chat: $e')));
-                    }
-                  }
-                },
-                icon: const Icon(Icons.chat_bubble_outline),
-                label: const Text('Chat with seller'),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
-              ),
-            ),
           ],
         ),
       ),
@@ -254,7 +222,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     );
   }
 
-  Widget _buildItemRow(OrderItemModel item) {
+  Widget _buildItemRow(OrderItemModel item, OrderModel order) {
     final itemConfig = _itemStatusConfig(item.status);
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -280,6 +248,35 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
             ),
           ),
           _statusBadge(itemConfig['label'] as String, itemConfig['color'] as Color),
+          if (item.sellerId != null)
+            IconButton(
+              icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF2E7D32), size: 20),
+              onPressed: () async {
+                try {
+                  final response = await ApiService.post('chat/conversations/get_or_create/', {
+                    'user_id': item.sellerId,
+                  });
+                  if (response is Map && response['conversation_id'] != null) {
+                    if (!mounted) return;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChatScreen(
+                          conversationId: response['conversation_id'],
+                          otherUserId: item.sellerId!,
+                          otherUserName: item.shopName ?? 'Seller',
+                          initialMessage: 'Hi, I am contacting you regarding my order (#${order.id}) for ${item.productName}.',
+                        ),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Unable to start chat: $e')));
+                  }
+                }
+              },
+            ),
         ],
       ),
     );

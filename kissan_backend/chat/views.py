@@ -13,7 +13,15 @@ class ConversationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Conversation.objects.filter(Q(participant_a=self.request.user) | Q(participant_b=self.request.user)).prefetch_related('messages')
+        return (
+            Conversation.objects
+            .filter(Q(participant_a=self.request.user) | Q(participant_b=self.request.user))
+            .select_related(
+                'participant_a__seller_profile',
+                'participant_b__seller_profile',
+            )
+            .prefetch_related('messages')
+        )
 
     @action(detail=False, methods=['post'])
     def get_or_create(self, request):

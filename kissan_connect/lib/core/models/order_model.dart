@@ -49,6 +49,8 @@ class OrderItemModel {
   final int id;
   final int? productId;
   final String productName;
+  final int? sellerId;
+  final String? shopName;
   final int quantity;
   final double price;
   final String status;
@@ -57,6 +59,8 @@ class OrderItemModel {
     required this.id,
     this.productId,
     required this.productName,
+    this.sellerId,
+    this.shopName,
     required this.quantity,
     required this.price,
     this.status = 'pending',
@@ -67,6 +71,8 @@ class OrderItemModel {
       id: json['id'],
       productId: json['product'],
       productName: json['product_name'] ?? 'Deleted Product',
+      sellerId: json['seller_id'],
+      shopName: json['shop_name'] ?? json['seller_name'],
       quantity: json['quantity'] ?? 1,
       price: double.parse(json['price']?.toString() ?? '0.0'),
       status: json['status'] ?? 'pending',

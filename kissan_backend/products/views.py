@@ -19,6 +19,18 @@ class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CategorySerializer
     permission_classes = [permissions.AllowAny]
 
+from rest_framework.pagination import PageNumberPagination
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 6
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+class ReviewResultsSetPagination(PageNumberPagination):
+    page_size = 5
+    page_size_query_param = 'page_size'
+    max_page_size = 50
+
 class ProductListCreateView(generics.ListCreateAPIView):
     serializer_class = ProductListSerializer
     permission_classes = [permissions.AllowAny]
@@ -26,6 +38,7 @@ class ProductListCreateView(generics.ListCreateAPIView):
     filterset_fields = ['category', 'is_famous']
     search_fields = ['name']
     ordering_fields = ['price', 'created_at', 'name']
+    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
         return Product.objects.select_related(
@@ -97,6 +110,9 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
 class ReviewListCreateView(generics.ListCreateAPIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+    pagination_class = ReviewResultsSetPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['product']
     
     def get_permissions(self):
         if self.request.method == 'GET':
@@ -115,6 +131,7 @@ class SellerProductViewSet(viewsets.ModelViewSet):
     """ViewSet for sellers to manage their own inventory."""
     serializer_class = ProductSerializer
     permission_classes = [IsSeller, IsProductOwner]
+    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
         return Product.objects.filter(seller=self.request.user).select_related(

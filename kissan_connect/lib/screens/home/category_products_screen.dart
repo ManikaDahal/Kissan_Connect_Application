@@ -28,6 +28,9 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
   String _searchQuery = '';
   String? _sortBy;
   Timer? _debounce;
+  int _currentPage = 1;
+  bool _hasNextPage = false;
+  bool _hasPreviousPage = false;
 
   @override
   void initState() {
@@ -42,7 +45,10 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
     super.dispose();
   }
 
-  Future<void> _fetchProducts({bool isSearch = false}) async {
+  Future<void> _fetchProducts({bool isSearch = false, bool resetPage = false}) async {
+    if (resetPage || isSearch) {
+      _currentPage = 1;
+    }
     if (isSearch) {
       setState(() => _isSearchLoading = true);
     } else {
@@ -52,11 +58,20 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
     try {
       final data = await ApiService.get('products/products/', params: {
         'category': widget.categoryId.toString(),
+        'page': _currentPage.toString(),
         if (_searchQuery.isNotEmpty) 'search': _searchQuery,
         if (_sortBy != null) 'ordering': _sortBy!,
       });
       setState(() {
-        _products = (data is Map && data.containsKey('results')) ? data['results'] : data;
+        if (data is Map) {
+          _products = data['results'] ?? [];
+          _hasNextPage = data['next'] != null;
+          _hasPreviousPage = data['previous'] != null;
+        } else {
+          _products = data is List ? data : [];
+          _hasNextPage = false;
+          _hasPreviousPage = false;
+        }
         _isLoading = false;
         _isSearchLoading = false;
       });
@@ -167,18 +182,69 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                           ],
                         ),
                       )
-                    : GridView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.75,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                        ),
-                        itemCount: _products.length,
-                        itemBuilder: (context, index) {
-                          return ProductCard(product: _products[index]);
-                        },
+                    : Column(
+                        children: [
+                          Expanded(
+                            child: GridView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                childAspectRatio: 0.75,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                              ),
+                              itemCount: _products.length,
+                              itemBuilder: (context, index) {
+                                return ProductCard(product: _products[index]);
+                              },
+                            ),
+                          ),
+                          if (_products.isNotEmpty && (_hasNextPage || _hasPreviousPage))
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.chevron_left, color: AppTheme.primaryGreen),
+                                    onPressed: _hasPreviousPage
+                                        ? () {
+                                            setState(() {
+                                              _currentPage--;
+                                            });
+                                            _fetchProducts();
+                                          }
+                                        : null,
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primaryGreen.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      "Page $_currentPage",
+                                      style: const TextStyle(
+                                        color: AppTheme.primaryGreen,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.chevron_right, color: AppTheme.primaryGreen),
+                                    onPressed: _hasNextPage
+                                        ? () {
+                                            setState(() {
+                                              _currentPage++;
+                                            });
+                                            _fetchProducts();
+                                          }
+                                        : null,
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
                       ),
           ),
         ],
@@ -233,7 +299,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
           _sortBy = isSelected ? null : value;
         });
         Navigator.pop(context);
-        _fetchProducts(isSearch: true);
+        _fetchProducts(isSearch: true, resetPage: true);
       },
     );
   }

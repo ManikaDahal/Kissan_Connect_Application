@@ -57,15 +57,23 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                   itemBuilder: (context, index) {
                     final conversation = _conversations[index];
                     final lastMessageTime = conversation['last_message_time'];
+                    final isShop = conversation['shop_name'] != null;
+                    final displayName = conversation['participant_name'] ?? 'Conversation';
+                    final lastMsg = conversation['last_message']?.toString().isNotEmpty == true
+                        ? conversation['last_message']
+                        : 'Tap to start a conversation';
                     return Card(
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       child: ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: Color(0xFF2E7D32),
-                          child: Icon(Icons.person, color: Colors.white),
+                        leading: CircleAvatar(
+                          backgroundColor: const Color(0xFF2E7D32),
+                          child: Icon(
+                            isShop ? Icons.store : Icons.person,
+                            color: Colors.white,
+                          ),
                         ),
-                        title: Text(conversation['participant_name'] ?? 'Conversation'),
-                        subtitle: Text(conversation['last_message']?.toString().isNotEmpty == true ? conversation['last_message'] : 'Tap to start a conversation'),
+                        title: Text(displayName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(lastMsg, maxLines: 1, overflow: TextOverflow.ellipsis),
                         trailing: lastMessageTime != null
                             ? Text(
                                 DateTime.parse(lastMessageTime.toString()).toLocal().toString().split(' ').first,
@@ -79,7 +87,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                               builder: (_) => ChatScreen(
                                 conversationId: conversation['id'],
                                 otherUserId: conversation['other_user_id'],
-                                otherUserName: conversation['participant_name'] ?? 'Support',
+                                otherUserName: displayName,
                               ),
                             ),
                           );

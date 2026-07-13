@@ -30,6 +30,9 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialMessage != null) {
+      _controller.text = widget.initialMessage!;
+    }
     _loadMessages();
     _loadCurrentUser();
   }
