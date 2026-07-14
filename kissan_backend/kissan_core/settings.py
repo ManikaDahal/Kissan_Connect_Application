@@ -108,18 +108,26 @@ TEMPLATES = [
 WSGI_APPLICATION = 'kissan_core.wsgi.application'
 
 
-# Database configuration (Enforce PostgreSQL)
+# Database configuration (Enforce PostgreSQL in production, fallback to SQLite in debug mode)
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if not DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable is MISSING. PostgreSQL is required.")
-
-DATABASES = {
-    'default': dj_database_url.config(
-        default=DATABASE_URL,
-        conn_max_age=60,
-        conn_health_checks=True,
-    )
-}
+    if DEBUG:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
+    else:
+        raise ValueError("DATABASE_URL environment variable is MISSING. PostgreSQL is required.")
+else:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=60,
+            conn_health_checks=True,
+        )
+    }
 
 
 # Password validation

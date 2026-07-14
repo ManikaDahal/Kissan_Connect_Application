@@ -44,6 +44,8 @@ dependencies:
   flutter_spinkit: ^5.2.2
   shimmer: ^3.0.0
   flutter_stripe: ^11.4.0
+  esewa_flutter_sdk:
+    path: ./esewa_flutter_sdk
   url_launcher: ^6.3.2
   package_info_plus: ^9.0.1
   image_picker: ^1.2.2

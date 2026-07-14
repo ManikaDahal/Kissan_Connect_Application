@@ -15,6 +15,7 @@ class Order(models.Model):
     GATEWAY_CHOICES = (
         ('khalti', 'Khalti'),
         ('stripe', 'Stripe'),
+        ('esewa', 'eSewa'),
     )
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='orders')
