@@ -257,7 +257,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.of(context).pop();
               setState(() => _isLoading = true);
               try {
                 await ApiService.post(
@@ -267,6 +267,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 _onPaymentSuccess();
               } catch (e) {
                 if (mounted) {
+                  // ignore: use_build_context_synchronously
                   ErrorHelper.showSnackBarError(context, e, prefix: "Verification Failed");
                 }
               } finally {
@@ -451,7 +452,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             width: 2,
           ),
           borderRadius: BorderRadius.circular(12),
-          color: isSelected ? AppTheme.primaryGreen.withOpacity(0.05) : Colors.white,
+          color: isSelected ? AppTheme.primaryGreen.withValues(alpha: 0.05) : Colors.white,
         ),
         child: Row(
           children: [
@@ -505,7 +506,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
-                        BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10),
+                        BoxShadow(color: Colors.grey.withValues(alpha: 0.1), blurRadius: 10),
                       ],
                     ),
                     child: Column(
