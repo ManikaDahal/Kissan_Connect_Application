@@ -296,14 +296,26 @@ class OrderViewSet(viewsets.ModelViewSet):
         if not ref_id:
             return Response({'error': 'Reference ID (refId) is required'}, status=400)
 
-        esewa_client_id = os.environ.get('ESEWA_CLIENT_ID', 'JB0BBQ4aD0UqIThFJwAKBgAXEUkEGQUBBAwdOgABHD4DChwUAB0R')
-        esewa_secret_key = os.environ.get('ESEWA_SECRET_KEY', 'BhwIWQQADhIYSxILExMcAgFXFhcOBwAKBgAXEQ==')
         esewa_env = os.environ.get('ESEWA_ENVIRONMENT', 'test')  # 'live' or 'test'
 
-        if esewa_env == 'live':
-            url = f"https://esewa.com.np/mobile/transaction?txnRefId={ref_id}"
-        else:
-            url = f"https://uat.esewa.com.np/mobile/transaction?txnRefId={ref_id}"
+        # ── Sandbox / Test Mode ────────────────────────────────────────────────
+        # uat.esewa.com.np is NOT reachable from cloud servers (HF Spaces, Render, etc.).
+        # The eSewa Flutter SDK already verified the payment on-device before calling this.
+        # For test mode, we trust the refId from the SDK directly.
+        if esewa_env != 'live':
+            if order.status != 'paid':
+                order.status = 'paid'
+                order.transaction_id = ref_id
+                order.save()
+                _deduct_stock(order)
+                _create_seller_transactions(order)
+                threading.Thread(target=lambda: _notify_payment_success(order)).start()
+            return Response({'status': 'success', 'message': 'Payment verified (sandbox)'})
+
+        # ── Live Mode — server-side verification ───────────────────────────────
+        esewa_client_id = os.environ.get('ESEWA_CLIENT_ID', 'JB0BBQ4aD0UqIThFJwAKBgAXEUkEGQUBBAwdOgABHD4DChwUAB0R')
+        esewa_secret_key = os.environ.get('ESEWA_SECRET_KEY', 'BhwIWQQADhIYSxILExMcAgFXFhcOBwAKBgAXEQ==')
+        url = f"https://esewa.com.np/mobile/transaction?txnRefId={ref_id}"
 
         headers = {
             'merchantId': esewa_client_id,
@@ -312,7 +324,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         }
 
         try:
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=10)
             if response.status_code != 200:
                 return Response({'status': 'failed', 'message': f'eSewa returned status code {response.status_code}'}, status=400)
 
@@ -322,7 +334,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 tx_data = data[0]
                 status_str = tx_data.get('transactionDetails', {}).get('status')
                 if status_str == 'COMPLETE':
-                    if order.status != 'paid':  # Prevent double deduction
+                    if order.status != 'paid':
                         order.status = 'paid'
                         order.transaction_id = ref_id
                         order.save()
@@ -559,18 +571,25 @@ def esewa_callback(request):
                     esewa_secret_key = os.environ.get('ESEWA_SECRET_KEY', 'BhwIWQQADhIYSxILExMcAgFXFhcOBwAKBgAXEQ==')
                     esewa_env = os.environ.get('ESEWA_ENVIRONMENT', 'test')
 
-                    if esewa_env == 'live':
-                        url = f"https://esewa.com.np/mobile/transaction?txnRefId={ref_id}"
+                    # Skip UAT network call — unreachable from cloud servers.
+                    # For test mode, trust refId from the SDK callback directly.
+                    if esewa_env != 'live':
+                        order.status = 'paid'
+                        order.transaction_id = ref_id
+                        order.save()
+                        _deduct_stock(order)
+                        _create_seller_transactions(order)
+                        threading.Thread(target=lambda: _notify_payment_success(order)).start()
                     else:
-                        url = f"https://uat.esewa.com.np/mobile/transaction?txnRefId={ref_id}"
-
-                    headers = {
-                        'merchantId': esewa_client_id,
-                        'merchantSecret': esewa_secret_key,
-                        'Content-Type': 'application/json',
-                    }
-
-                    response = requests.get(url, headers=headers)
+                        esewa_client_id = os.environ.get('ESEWA_CLIENT_ID', 'JB0BBQ4aD0UqIThFJwAKBgAXEUkEGQUBBAwdOgABHD4DChwUAB0R')
+                        esewa_secret_key = os.environ.get('ESEWA_SECRET_KEY', 'BhwIWQQADhIYSxILExMcAgFXFhcOBwAKBgAXEQ==')
+                        url = f"https://esewa.com.np/mobile/transaction?txnRefId={ref_id}"
+                        headers = {
+                            'merchantId': esewa_client_id,
+                            'merchantSecret': esewa_secret_key,
+                            'Content-Type': 'application/json',
+                        }
+                        response = requests.get(url, headers=headers, timeout=10)
                     if response.status_code == 200:
                         data = response.json()
                         if isinstance(data, list) and len(data) > 0:
