@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Deploy kissan_backend to Hugging Face
         env:
@@ -19,8 +21,9 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
 
-          # Copy backend into a temp folder
-          cp -r kissan_backend /tmp/hf_deploy
+          # Copy backend CONTENTS (not the folder itself) into a temp folder
+          mkdir -p /tmp/hf_deploy
+          cp -r kissan_backend/. /tmp/hf_deploy/
           cd /tmp/hf_deploy
 
           # Fix line endings on the entrypoint script (CRLF -> LF)
