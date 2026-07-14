@@ -32,4 +32,4 @@ USER user
 EXPOSE 7860
 
 # Run migrations, collect static files, then start gunicorn
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && exec gunicorn kissan_core.wsgi:application --bind 0.0.0.0:7860 --workers 2 --timeout 120 --access-logfile -"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && exec gunicorn kissan_core.wsgi:application --bind 0.0.0.0:7860 --workers 1 --threads 2 --timeout 120 --access-logfile -"]
