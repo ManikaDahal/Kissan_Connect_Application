@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kissan_connect/services/api_service.dart';
 import 'package:kissan_connect/screens/chat/chat_screen.dart';
+import 'package:kissan_connect/widgets/shimmer_loading.dart';
 
 class ConversationListScreen extends StatefulWidget {
   const ConversationListScreen({super.key});
@@ -47,7 +48,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
         foregroundColor: Colors.white,
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ChatListShimmer()
           : _conversations.isEmpty
               ? const Center(child: Text('No conversations yet'))
               : ListView.separated(

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/kissan_backend/eSewa Flutter Sdk/eSewa Flutter Sdk v2.5.5_25/esewa_flutter_sdk/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_backend/eSewa Flutter Sdk/eSewa Flutter Sdk v2.5.5_25/esewa_flutter_sdk/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_backend/eSewa Flutter Sdk/eSewa Flutter Sdk v2.5.5_25/esewa_flutter_sdk/build" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/build" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/esewa_flutter_sdk/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/esewa_flutter_sdk/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/esewa_flutter_sdk/build" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/file_selector_linux/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/file_selector_linux/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/file_selector_linux/build" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/file_selector_linux/example/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/file_selector_linux/example/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/file_selector_linux/example/build" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/flutter_local_notifications_linux/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/flutter_local_notifications_linux/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/flutter_local_notifications_linux/build" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/image_picker_linux/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/image_picker_linux/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/image_picker_linux/build" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/image_picker_linux/example/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/image_picker_linux/example/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/image_picker_linux/example/build" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/package_info_plus/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/package_info_plus/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/package_info_plus/build" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/package_info_plus/example/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/package_info_plus/example/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/package_info_plus/example/build" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/path_provider_linux/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/path_provider_linux/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/path_provider_linux/build" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/path_provider_linux/example/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/path_provider_linux/example/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/path_provider_linux/example/build" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/shared_preferences_linux/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/shared_preferences_linux/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/shared_preferences_linux/build" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/shared_preferences_linux/example/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/shared_preferences_linux/example/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/shared_preferences_linux/example/build" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/url_launcher_linux/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/url_launcher_linux/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/url_launcher_linux/build" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/url_launcher_linux/example/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/url_launcher_linux/example/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/kissan_connect/linux/flutter/ephemeral/.plugin_symlinks/url_launcher_linux/example/build" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

@@ -69,7 +69,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Future<void> _processPayment() async {
-    final cart = ref.read(cartProvider);
+    final cart = ref.read(cartProvider).where((item) => item.isSelected).toList();
     final total = ref.read(cartProvider.notifier).totalAmount;
 
     if (cart.isEmpty) return;
@@ -284,7 +284,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   void _onPaymentSuccess() {
-    ref.read(cartProvider.notifier).clearCart();
+    ref.read(cartProvider.notifier).clearSelectedItems();
     if (!mounted) return;
 
     showDialog(
@@ -482,7 +482,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       backgroundColor: AppTheme.backgroundLight,
       appBar: const CustomAppBar(title: "Checkout"),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator()) // This is for payment processing, keep loader
           : Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
