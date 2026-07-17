@@ -493,7 +493,9 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    product['shop_address'] ?? "Address not provided",
+                    product['distance'] != null
+                        ? "${product['shop_address'] ?? "Address not provided"} (${product['distance']} km away)"
+                        : (product['shop_address'] ?? "Address not provided"),
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],

@@ -50,6 +50,7 @@ def get_nearby_products(lat: float, lon: float, radius_km: float = 20, limit: in
             continue
         distance = haversine_distance(lat, lon, seller_profile.latitude, seller_profile.longitude)
         if distance <= radius_km:
+            product.distance = round(distance, 2)
             products_with_distance.append((product, distance))
 
     products_with_distance.sort(key=lambda item: item[1])

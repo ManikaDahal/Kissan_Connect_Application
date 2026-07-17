@@ -66,11 +66,18 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
   Future<void> addToCart(dynamic product) async {
     final bool loggedIn = await ApiService.isLoggedIn();
     
+    final int stock = product['stock'] ?? 0;
+    final index = state.indexWhere((item) => item.product['id'] == product['id']);
+    final int currentQty = index != -1 ? state[index].quantity : 0;
+    
+    if (currentQty + 1 > stock) {
+      throw Exception("Product not sufficient. Only $stock left in stock.");
+    }
+    
     // Save old state for potential rollback
     final oldState = [...state];
     
     // Optimistic Update
-    final index = state.indexWhere((item) => item.product['id'] == product['id']);
     if (index != -1) {
       state = [
         for (int i = 0; i < state.length; i++)
@@ -126,6 +133,14 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
       if (newQuantity <= 0) {
         await removeFromCart(productId);
       } else {
+        final int stock = state[index].product['stock'] ?? 0;
+        if (delta > 0 && newQuantity > stock) {
+          throw Exception("Product not sufficient. Only $stock left in stock.");
+        }
+
+        // Save old state for potential rollback
+        final oldState = [...state];
+
         // Optimistic Update
         state = [
           for (final item in state)
@@ -147,6 +162,8 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
             });
           } catch (e) {
             debugPrint("Error updating persistent cart: $e");
+            state = oldState;
+            rethrow;
           }
         }
       }

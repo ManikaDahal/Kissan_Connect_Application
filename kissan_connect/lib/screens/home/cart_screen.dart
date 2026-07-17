@@ -140,12 +140,38 @@ class CartScreen extends ConsumerWidget {
                                 children: [
                                   IconButton(
                                     icon: const Icon(Icons.remove_circle_outline, color: AppTheme.primaryGreen),
-                                    onPressed: () => cartNotifier.updateQuantity(item.product['id'], -1),
+                                    onPressed: () async {
+                                      try {
+                                        await cartNotifier.updateQuantity(item.product['id'], -1);
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(e.toString().replaceAll("Exception: ", "")),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
                                   ),
                                   Text("${item.quantity}", style: const TextStyle(fontWeight: FontWeight.bold)),
                                   IconButton(
                                     icon: const Icon(Icons.add_circle_outline, color: AppTheme.primaryGreen),
-                                    onPressed: () => cartNotifier.updateQuantity(item.product['id'], 1),
+                                    onPressed: () async {
+                                      try {
+                                        await cartNotifier.updateQuantity(item.product['id'], 1);
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(e.toString().replaceAll("Exception: ", "")),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
                                   ),
                                 ],
                               ),

@@ -11,6 +11,7 @@ import 'package:kissan_connect/core/models/address_model.dart';
 import 'package:kissan_connect/screens/profile/add_address_screen.dart';
 import 'package:kissan_connect/core/utils/error_helper.dart';
 import 'package:kissan_connect/core/utils/const.dart';
+import 'package:kissan_connect/widgets/blur_loading_overlay.dart';
 import 'package:esewa_flutter_sdk/esewa_config.dart';
 import 'package:esewa_flutter_sdk/esewa_flutter_sdk.dart';
 import 'package:esewa_flutter_sdk/esewa_payment.dart';
@@ -481,9 +482,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       appBar: const CustomAppBar(title: "Checkout"),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator()) // This is for payment processing, keep loader
-          : Padding(
+      body: BlurLoadingOverlay(
+        isLoading: _isLoading,
+        child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -553,6 +554,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 ],
               ),
             ),
+      ),
     );
   }
 }

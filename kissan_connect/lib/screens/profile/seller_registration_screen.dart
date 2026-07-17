@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kissan_connect/services/api_service.dart';
 import 'package:kissan_connect/widgets/custom_app_bar.dart';
+import 'package:kissan_connect/widgets/blur_loading_overlay.dart';
 
 class SellerRegistrationScreen extends StatefulWidget {
   const SellerRegistrationScreen({super.key});
 
   @override
-  State<SellerRegistrationScreen> createState() => _SellerRegistrationScreenState();
+  State<SellerRegistrationScreen> createState() =>
+      _SellerRegistrationScreenState();
 }
 
 class _SellerRegistrationScreenState extends State<SellerRegistrationScreen> {
@@ -17,7 +19,8 @@ class _SellerRegistrationScreenState extends State<SellerRegistrationScreen> {
   final _shopDescController = TextEditingController();
   final _shopAddressController = TextEditingController();
   final _payoutIdController = TextEditingController();
-  
+  final _panController = TextEditingController();
+
   String _selectedGateway = 'esewa';
   File? _citizenshipFront;
   File? _citizenshipBack;
@@ -67,7 +70,9 @@ class _SellerRegistrationScreenState extends State<SellerRegistrationScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_citizenshipFront == null || _citizenshipBack == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please upload both sides of your citizenship")),
+        const SnackBar(
+          content: Text("Please upload both sides of your citizenship"),
+        ),
       );
       return;
     }
@@ -81,6 +86,7 @@ class _SellerRegistrationScreenState extends State<SellerRegistrationScreen> {
         'shop_address': _shopAddressController.text,
         'payout_gateway': _selectedGateway,
         'payout_id': _payoutIdController.text,
+        'PAN_NUMBER': _panController.text,
       };
 
       final files = {
@@ -89,7 +95,7 @@ class _SellerRegistrationScreenState extends State<SellerRegistrationScreen> {
       };
 
       await ApiService.postMultipart('users/seller/apply/', fields, files);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Application submitted successfully!")),
@@ -98,9 +104,9 @@ class _SellerRegistrationScreenState extends State<SellerRegistrationScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: ${e.toString()}")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -111,93 +117,145 @@ class _SellerRegistrationScreenState extends State<SellerRegistrationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomAppBar(title: "Become a Seller"),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Register your Shop",
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green),
+      body: BlurLoadingOverlay(
+        isLoading: _isLoading,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Register your Shop",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
                   ),
-                  const SizedBox(height: 8),
-                  const Text("Provide your business details and verification documents.", style: TextStyle(color: Colors.grey)),
-                  const SizedBox(height: 24),
-                  
-                  TextFormField(
-                    controller: _shopNameController,
-                    decoration: const InputDecoration(labelText: "Shop Name", border: OutlineInputBorder()),
-                    validator: (v) => v!.isEmpty ? "Enter shop name" : null,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "Provide your business details and verification documents.",
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 24),
+
+                TextFormField(
+                  controller: _shopNameController,
+                  decoration: const InputDecoration(
+                    labelText: "Shop Name",
+                    border: OutlineInputBorder(),
                   ),
-                  const SizedBox(height: 16),
-                  
-                  TextFormField(
-                    controller: _shopDescController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(labelText: "Shop Description", border: OutlineInputBorder()),
-                    validator: (v) => v!.isEmpty ? "Enter description" : null,
+                  validator: (v) => v!.isEmpty ? "Enter shop name" : null,
+                ),
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _shopDescController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: "Shop Description",
+                    border: OutlineInputBorder(),
                   ),
-                  const SizedBox(height: 16),
-                  
-                  TextFormField(
-                    controller: _shopAddressController,
-                    decoration: const InputDecoration(labelText: "Shop Address", border: OutlineInputBorder()),
-                    validator: (v) => v!.isEmpty ? "Enter shop address" : null,
+                  validator: (v) => v!.isEmpty ? "Enter description" : null,
+                ),
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _shopAddressController,
+                  decoration: const InputDecoration(
+                    labelText: "Shop Address",
+                    border: OutlineInputBorder(),
                   ),
-                  const SizedBox(height: 24),
-                  
-                  const Text("Identity Verification", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(child: _buildImagePicker("Front Side", _citizenshipFront, () => _pickImage(true))),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildImagePicker("Back Side", _citizenshipBack, () => _pickImage(false))),
-                    ],
+                  validator: (v) => v!.isEmpty ? "Enter shop address" : null,
+                ),
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _panController,
+                  decoration: const InputDecoration(
+                    labelText: "PAN Number (Optional)",
+                    border: OutlineInputBorder(),
                   ),
-                  const SizedBox(height: 24),
-                  
-                  const Text("Payout Settings", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: _selectedGateway,
-                    decoration: const InputDecoration(border: OutlineInputBorder(), labelText: "Payout Gateway"),
-                    items: const [
-                      DropdownMenuItem(value: 'esewa', child: Text("eSewa")),
-                      DropdownMenuItem(value: 'stripe', child: Text("Stripe")),
-                    ],
-                    onChanged: (v) => setState(() => _selectedGateway = v!),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  TextFormField(
-                    controller: _payoutIdController,
-                    decoration: InputDecoration(
-                      labelText: _selectedGateway == 'esewa' ? "eSewa Phone Number" : "Stripe Account ID",
-                      border: const OutlineInputBorder()
+                ),
+                const SizedBox(height: 24),
+
+                const Text(
+                  "Citizenship Certificate",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildImagePicker(
+                        "Front Side",
+                        _citizenshipFront,
+                        () => _pickImage(true),
+                      ),
                     ),
-                    validator: (v) => v!.isEmpty ? "Enter payout ID" : null,
-                  ),
-                  const SizedBox(height: 32),
-                  
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _submitApplication,
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                      child: const Text("Submit Application"),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildImagePicker(
+                        "Back Side",
+                        _citizenshipBack,
+                        () => _pickImage(false),
+                      ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                const Text(
+                  "Payout Settings",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: _selectedGateway,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: "Payout Gateway",
                   ),
-                  const SizedBox(height: 20),
-                ],
-              ),
+                  items: const [
+                    DropdownMenuItem(value: 'esewa', child: Text("eSewa")),
+                    DropdownMenuItem(value: 'stripe', child: Text("Stripe")),
+                  ],
+                  onChanged: (v) => setState(() => _selectedGateway = v!),
+                ),
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _payoutIdController,
+                  decoration: InputDecoration(
+                    labelText: _selectedGateway == 'esewa'
+                        ? "eSewa Phone Number"
+                        : "Stripe Account ID",
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: (v) => v!.isEmpty ? "Enter payout ID" : null,
+                ),
+                const SizedBox(height: 32),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _submitApplication,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text("Submit Application"),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
             ),
           ),
+        ),
+      ),
     );
   }
 
@@ -214,9 +272,16 @@ class _SellerRegistrationScreenState extends State<SellerRegistrationScreen> {
               borderRadius: BorderRadius.circular(8),
               color: Colors.grey.shade50,
             ),
-            child: image == null 
-              ? const Icon(Icons.add_a_photo_outlined, color: Colors.grey, size: 30)
-              : ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(image, fit: BoxFit.cover)),
+            child: image == null
+                ? const Icon(
+                    Icons.add_a_photo_outlined,
+                    color: Colors.grey,
+                    size: 30,
+                  )
+                : ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.file(image, fit: BoxFit.cover),
+                  ),
           ),
           const SizedBox(height: 4),
           Text(label, style: const TextStyle(fontSize: 12)),

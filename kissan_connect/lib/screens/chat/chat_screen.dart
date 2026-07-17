@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:kissan_connect/services/api_service.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -26,6 +28,8 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _loading = true;
   bool _isSending = false;
   int? _currentUserId;
+  final ImagePicker _picker = ImagePicker();
+  File? _selectedImage;
 
   @override
   void initState() {
@@ -71,16 +75,34 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
-    if (text.isEmpty || _isSending) return;
+    if (text.isEmpty && _selectedImage == null) return;
+    if (_isSending) return;
 
+    final imageFile = _selectedImage;
     _controller.clear();
-    setState(() => _isSending = true);
+    setState(() {
+      _isSending = true;
+      _selectedImage = null;
+    });
+    
     try {
-      final response = await ApiService.post('chat/messages/', {
-        'conversation': widget.conversationId,
-        'recipient': widget.otherUserId,
-        'content': text,
-      });
+      dynamic response;
+      if (imageFile != null) {
+        response = await ApiService.postMultipart('chat/messages/', {
+          'conversation': widget.conversationId.toString(),
+          'recipient': widget.otherUserId.toString(),
+          'content': text,
+        }, {
+          'image': imageFile.path,
+        });
+      } else {
+        response = await ApiService.post('chat/messages/', {
+          'conversation': widget.conversationId,
+          'recipient': widget.otherUserId,
+          'content': text,
+        });
+      }
+      
       if (response is Map<String, dynamic>) {
         setState(() {
           _messages.add(response);
@@ -141,9 +163,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           final message = _messages[index];
                           final isMine = _currentUserId != null && message['sender'] == _currentUserId;
                           final createdAt = message['created_at'];
-                          final timeText = createdAt != null
-                              ? DateTime.parse(createdAt.toString()).toLocal().toString().split(' ').last.substring(0, 5)
-                              : '';
+                          final timeText = createdAt != null ? _getTimeAgo(createdAt.toString()) : '';
                           return Align(
                             alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
                             child: Container(
@@ -156,10 +176,23 @@ class _ChatScreenState extends State<ChatScreen> {
                               child: Column(
                                 crossAxisAlignment: isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    message['content'] ?? '',
-                                    style: TextStyle(color: isMine ? Colors.white : Colors.black87),
-                                  ),
+                                  if (message['image'] != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 8.0),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(
+                                          message['image'],
+                                          width: 200,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ),
+                                  if (message['content'] != null && message['content'].toString().isNotEmpty)
+                                    Text(
+                                      message['content'] ?? '',
+                                      style: TextStyle(color: isMine ? Colors.white : Colors.black87),
+                                    ),
                                   if (timeText.isNotEmpty)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 4),
@@ -182,26 +215,67 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  IconButton(
+                    icon: const Icon(Icons.photo),
+                    color: const Color(0xFF2E7D32),
+                    onPressed: () async {
+                      final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+                      if (image != null) {
+                        setState(() => _selectedImage = File(image.path));
+                      }
+                    },
+                  ),
                   Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      decoration: InputDecoration(
-                        hintText: 'Type a message',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                      onSubmitted: (_) => _sendMessage(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_selectedImage != null)
+                          Stack(
+                            children: [
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                height: 80,
+                                width: 80,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  image: DecorationImage(image: FileImage(_selectedImage!), fit: BoxFit.cover),
+                                ),
+                              ),
+                              Positioned(
+                                top: -10,
+                                right: -10,
+                                child: IconButton(
+                                  icon: const Icon(Icons.cancel, color: Colors.red),
+                                  onPressed: () => setState(() => _selectedImage = null),
+                                ),
+                              )
+                            ],
+                          ),
+                        TextField(
+                          controller: _controller,
+                          decoration: InputDecoration(
+                            hintText: 'Type a message',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                          onSubmitted: (_) => _sendMessage(),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 8),
-                  IconButton.filled(
-                    onPressed: _sendMessage,
-                    icon: _isSending
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.send),
-                    color: Colors.white,
-                    style: IconButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: IconButton.filled(
+                      onPressed: _sendMessage,
+                      icon: _isSending
+                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.send),
+                      color: Colors.white,
+                      style: IconButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
+                    ),
                   ),
                 ],
               ),
@@ -210,5 +284,20 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
+  }
+  String _getTimeAgo(String timestamp) {
+    try {
+      final date = DateTime.parse(timestamp).toLocal();
+      final now = DateTime.now();
+      final diff = now.difference(date);
+      
+      if (diff.inSeconds < 60) return "Just now";
+      if (diff.inMinutes < 60) return "${diff.inMinutes} mins ago";
+      if (diff.inHours < 24) return "${diff.inHours} hours ago";
+      if (diff.inDays == 1) return "Yesterday";
+      return "${diff.inDays} days ago";
+    } catch (e) {
+      return '';
+    }
   }
 }

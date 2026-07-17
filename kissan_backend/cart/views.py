@@ -36,11 +36,16 @@ class AddToCartView(views.APIView):
         cart, _ = Cart.objects.get_or_create(user=self.request.user)
         cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
         
-        if not created:
-            cart_item.quantity += quantity
-        else:
-            cart_item.quantity = quantity
+        target_quantity = cart_item.quantity + quantity if not created else quantity
+        if product.stock < target_quantity:
+            if created:
+                cart_item.delete()
+            return Response(
+                {'error': f"Product not sufficient. Only {product.stock} items left in stock."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
             
+        cart_item.quantity = target_quantity
         cart_item.save()
         return Response(CartItemSerializer(cart_item).data, status=status.HTTP_201_CREATED)
 
@@ -63,6 +68,13 @@ class UpdateCartItemView(views.APIView):
             cart = Cart.objects.get(user=self.request.user)
             CartItem.objects.filter(cart=cart, product_id=product_id).delete()
             return Response({'message': 'Item removed from cart'}, status=status.HTTP_200_OK)
+
+        # Check stock availability
+        if product.stock < quantity:
+            return Response(
+                {'error': f"Product not sufficient. Only {product.stock} items left in stock."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         cart, _ = Cart.objects.get_or_create(user=self.request.user)
         cart_item, created = CartItem.objects.get_or_create(cart=cart, product_id=product_id)

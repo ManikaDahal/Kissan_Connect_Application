@@ -5,8 +5,15 @@ from .models import Conversation, Message
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = ['id', 'conversation', 'sender', 'recipient', 'content', 'created_at', 'is_read']
+        fields = ['id', 'conversation', 'sender', 'recipient', 'content', 'image', 'created_at', 'is_read']
         read_only_fields = ['id', 'sender', 'created_at', 'is_read']
+
+    def validate(self, attrs):
+        content = attrs.get('content')
+        image = attrs.get('image')
+        if not content and not image:
+            raise serializers.ValidationError('Message must contain text content or an image.')
+        return attrs
 
     def validate_recipient(self, value):
         request_user = self.context.get('request').user if self.context.get('request') else None

@@ -38,6 +38,7 @@ class ProductSerializer(serializers.ModelSerializer):
     seller_name = serializers.ReadOnlyField(source='seller.full_name')
     shop_name = serializers.ReadOnlyField(source='seller.seller_profile.shop_name')
     shop_address = serializers.ReadOnlyField(source='seller.seller_profile.shop_address')
+    distance = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -46,8 +47,12 @@ class ProductSerializer(serializers.ModelSerializer):
             'price', 'discount_price', 'stock', 'weight', 'unit_type', 'image', 'is_famous',
             'approval_status', 'admin_note',
             'created_at', 'reviews', 'average_rating', 'total_reviews',
-            'seller', 'seller_name', 'shop_name', 'shop_address',
+            'seller', 'seller_name', 'shop_name', 'shop_address', 'distance',
         )
+
+    def get_distance(self, obj):
+        val = getattr(obj, 'distance', None)
+        return float(val) if val is not None else None
 
     def validate(self, data):
         price = data.get('price')
@@ -86,6 +91,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     total_reviews = serializers.ReadOnlyField()
     shop_name = serializers.ReadOnlyField(source='seller.seller_profile.shop_name')
     shop_address = serializers.ReadOnlyField(source='seller.seller_profile.shop_address')
+    distance = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -93,8 +99,12 @@ class ProductListSerializer(serializers.ModelSerializer):
             'id', 'name', 'category', 'category_name', 'description',
             'price', 'discount_price', 'stock', 'weight', 'unit_type', 'image', 'is_famous',
             'approval_status', 'admin_note',
-            'created_at', 'average_rating', 'total_reviews', 'shop_name', 'shop_address',
+            'created_at', 'average_rating', 'total_reviews', 'shop_name', 'shop_address', 'distance',
         )
+
+    def get_distance(self, obj):
+        val = getattr(obj, 'distance', None)
+        return float(val) if val is not None else None
 
     def get_category_name(self, obj):
         return obj.category.name if obj.category else "Uncategorized"

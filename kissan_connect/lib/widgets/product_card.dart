@@ -103,7 +103,9 @@ class ProductCard extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    product['shop_name'] ?? "Store",
+                    product['distance'] != null
+                        ? "${product['shop_name'] ?? "Store"} • ${product['distance']} km away"
+                        : (product['shop_name'] ?? "Store"),
                     style: TextStyle(color: Colors.grey[500], fontSize: 10),
                     maxLines: 1,
                   ),
