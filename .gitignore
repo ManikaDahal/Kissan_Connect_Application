@@ -1,0 +1,37 @@
+# IDE - Android Studio / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# VS Code
+#.vscode/
+
+# Python / Django
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.pyc
+*.log
+db.sqlite3
+.env
+.venv/
+env/
+venv/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Flutter build artifacts (already covered in kissan_connect/.gitignore, kept here for safety)
+/kissan_connect/build/
+/kissan_connect/.dart_tool/
+/kissan_connect/.pub-cache/
+
+# Django static / media
+kissan_backend/staticfiles/
+kissan_backend/media/
