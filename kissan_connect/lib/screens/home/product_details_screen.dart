@@ -103,6 +103,9 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
       if (mounted) {
         setState(() {
           _currentProduct = updatedProduct;
+          if (_currentProduct != null && widget.product['distance'] != null) {
+            _currentProduct['distance'] ??= widget.product['distance'];
+          }
           _isLoadingProduct = false;
         });
       }
@@ -449,6 +452,23 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
             ),
           ],
         ),
+        if (product['distance'] != null) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.location_on, color: AppTheme.primaryGreen, size: 16),
+              const SizedBox(width: 4),
+              Text(
+                "${product['distance']} km away from you",
+                style: const TextStyle(
+                  color: AppTheme.primaryGreen,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 16),
         Builder(builder: (context) {
           final weightLabel = _getWeightLabel(product, weight);

@@ -58,6 +58,7 @@ class _OTPVerificationPageState extends ConsumerState<OTPVerificationPage> {
             const SizedBox(height: 40),
             CustomElevatedbutton(
               onPressed: _isLoading ? () {} : () async {
+                FocusScope.of(context).unfocus();
                 String otp = _controllers.map((e) => e.text.trim()).join();
                 if (otp.length == 6) {
                    setState(() => _isLoading = true);

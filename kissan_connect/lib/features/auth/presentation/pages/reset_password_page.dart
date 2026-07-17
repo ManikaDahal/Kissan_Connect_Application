@@ -101,6 +101,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
               const SizedBox(height: 40),
               CustomElevatedbutton(
                 onPressed: _isLoading ? () {} : () async {
+                  FocusScope.of(context).unfocus();
                   if (_formKey.currentState!.validate()) {
                     setState(() => _isLoading = true);
                     try {

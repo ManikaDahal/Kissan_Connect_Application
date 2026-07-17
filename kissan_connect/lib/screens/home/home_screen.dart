@@ -43,7 +43,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   bool _hasNextAllProducts = false;
   bool _hasPreviousAllProducts = false;
   int _unreadNotificationCount = 0;
-  final Map<int, List<dynamic>> _pageCache = {};
+  final Map<int, Map<String, dynamic>> _pageCache = {};
   bool _isPrefetching = false;
   bool _isGridLoading = false;
 
@@ -242,12 +242,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     
     // Check cache for paging
     if (isPaging && _pageCache.containsKey(_allProductsPage)) {
+      final cached = _pageCache[_allProductsPage]!;
       setState(() {
-        _allProducts = _pageCache[_allProductsPage]!;
+        _allProducts = cached['results'] ?? [];
+        _hasNextAllProducts = cached['next'] ?? false;
+        _hasPreviousAllProducts = cached['previous'] ?? false;
         _isSearchLoading = false;
         _isLoading = false;
         _isGridLoading = false;
       });
+      if (_hasNextAllProducts && !isSearch) {
+        _prefetchNextPage();
+      }
+      return;
     } else if (isPaging) {
       setState(() => _isGridLoading = true);
     }
@@ -309,12 +316,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
               _allProducts = productsData['results'] ?? [];
               _hasNextAllProducts = productsData['next'] != null;
               _hasPreviousAllProducts = productsData['previous'] != null;
-              _pageCache[_allProductsPage] = _allProducts;
+              _pageCache[_allProductsPage] = {
+                'results': _allProducts,
+                'next': _hasNextAllProducts,
+                'previous': _hasPreviousAllProducts,
+              };
             } else {
               _allProducts = productsData is List ? productsData : [];
               _hasNextAllProducts = false;
               _hasPreviousAllProducts = false;
-              _pageCache[_allProductsPage] = _allProducts;
+              _pageCache[_allProductsPage] = {
+                'results': _allProducts,
+                'next': false,
+                'previous': false,
+              };
             }
           }
           _isLoading = false;
@@ -360,12 +375,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       
       if (productsData != null) {
         List<dynamic> items = [];
+        bool hasNext = false;
+        bool hasPrevious = false;
         if (productsData is Map) {
           items = productsData['results'] ?? [];
+          hasNext = productsData['next'] != null;
+          hasPrevious = productsData['previous'] != null;
         } else if (productsData is List) {
           items = productsData;
         }
-        _pageCache[nextPage] = items;
+        _pageCache[nextPage] = {
+          'results': items,
+          'next': hasNext,
+          'previous': hasPrevious,
+        };
       }
     } catch (e) {
       debugPrint("Prefetch error: $e");

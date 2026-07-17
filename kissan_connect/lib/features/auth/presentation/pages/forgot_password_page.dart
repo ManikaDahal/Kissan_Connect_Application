@@ -218,9 +218,23 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                               onPressed: () =>
                                   setState(() => showPassword = !showPassword),
                             ),
-                            validator: (val) => val != null && val.length >= 6
-                                ? null
-                                : "Min 6 characters",
+                            validator: (value) {
+                              if (value == null || value.isEmpty) return "Please enter a new password";
+                              if (value.length < 8) return "Password must be at least 8 characters";
+                              if (!RegExp(r'[A-Z]').hasMatch(value)) {
+                                return "Password must contain at least one uppercase letter";
+                              }
+                              if (!RegExp(r'[a-z]').hasMatch(value)) {
+                                return "Password must contain at least one lowercase letter";
+                              }
+                              if (!RegExp(r'[0-9]').hasMatch(value)) {
+                                return "Password must contain at least one digit";
+                              }
+                              if (!RegExp(r'[!@#$&*~%_+-]').hasMatch(value)) {
+                                return "Password must contain at least one special character";
+                              }
+                              return null;
+                            },
                           ),
                         ],
 
@@ -228,6 +242,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
 
                         CustomElevatedbutton(
                           onPressed: () async {
+                            FocusScope.of(context).unfocus();
                             if (_formKey.currentState!.validate()) {
                               setState(() => loader = true);
                               final email = _emailController.text.trim();
