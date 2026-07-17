@@ -530,6 +530,95 @@ class SellerEarningsShimmer extends StatelessWidget {
   }
 }
 
+/// Shimmer for the Weather Card.
+class WeatherShimmer extends StatelessWidget {
+  const WeatherShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ShimmerBox(
+      width: double.infinity,
+      height: 120,
+      borderRadius: 16,
+    );
+  }
+}
+
+/// Shimmer for a single review item.
+class ReviewItemShimmer extends StatelessWidget {
+  const ReviewItemShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ShimmerBox(width: 24, height: 24, borderRadius: 12),
+              const SizedBox(width: 8),
+              ShimmerBox(width: 80, height: 14),
+              const Spacer(),
+              ShimmerBox(width: 60, height: 12),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ShimmerBox(width: double.infinity, height: 12),
+          const SizedBox(height: 6),
+          ShimmerBox(width: 200, height: 12),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shimmer list for reviews.
+class ReviewListShimmer extends StatelessWidget {
+  final int itemCount;
+  const ReviewListShimmer({super.key, this.itemCount = 2});
+
+  @override
+  Widget build(BuildContext context) {
+    return ShimmerWrapper(
+      child: Column(
+        children: List.generate(itemCount, (index) => const ReviewItemShimmer()),
+      ),
+    );
+  }
+}
+
+/// Shimmer list for conversations.
+class ChatListShimmer extends StatelessWidget {
+  final int itemCount;
+  const ChatListShimmer({super.key, this.itemCount = 6});
+
+  @override
+  Widget build(BuildContext context) {
+    return ShimmerWrapper(
+      child: ListView.builder(
+        padding: const EdgeInsets.all(12),
+        itemCount: itemCount,
+        itemBuilder: (_, __) => Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          child: const ListTile(
+            leading: ShimmerBox(width: 40, height: 40, borderRadius: 20),
+            title: ShimmerBox(width: 120, height: 16),
+            subtitle: ShimmerBox(width: 200, height: 12),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Shimmer skeleton for the Categories grid screen.
 class CategoriesScreenShimmer extends StatelessWidget {
   const CategoriesScreenShimmer({super.key});

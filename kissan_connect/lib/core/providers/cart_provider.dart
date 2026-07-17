@@ -5,8 +5,9 @@ import 'package:flutter/material.dart';
 class CartItem {
   final dynamic product;
   int quantity;
+  bool isSelected;
 
-  CartItem({required this.product, this.quantity = 1});
+  CartItem({required this.product, this.quantity = 1, this.isSelected = true});
 }
 
 class CartNotifier extends StateNotifier<List<CartItem>> {
@@ -24,7 +25,8 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
   }
 
   Future<void> fetchCart() async {
-    _isLoading = true;
+    // Only show loading if we have no items
+    if (state.isEmpty) _isLoading = true;
     try {
       final response = await ApiService.get('cart/');
       if (response != null && response['items'] != null) {
@@ -32,6 +34,7 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
         state = itemsData.map((item) => CartItem(
           product: item['product'],
           quantity: item['quantity'],
+          isSelected: true,
         )).toList();
       }
     } catch (e) {
@@ -69,8 +72,17 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
     // Optimistic Update
     final index = state.indexWhere((item) => item.product['id'] == product['id']);
     if (index != -1) {
-      state[index].quantity++;
-      state = [...state];
+      state = [
+        for (int i = 0; i < state.length; i++)
+          if (i == index)
+            CartItem(
+              product: state[i].product,
+              quantity: state[i].quantity + 1,
+              isSelected: true, // Auto-select when adding again
+            )
+          else
+            state[i]
+      ];
     } else {
       state = [...state, CartItem(product: product)];
     }
@@ -115,8 +127,17 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
         await removeFromCart(productId);
       } else {
         // Optimistic Update
-        state[index].quantity = newQuantity;
-        state = [...state];
+        state = [
+          for (final item in state)
+            if (item.product['id'] == productId)
+              CartItem(
+                product: item.product,
+                quantity: newQuantity,
+                isSelected: item.isSelected,
+              )
+            else
+              item
+        ];
 
         if (loggedIn) {
           try {
@@ -146,8 +167,51 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
     }
   }
 
+  Future<void> clearSelectedItems() async {
+    final bool loggedIn = await ApiService.isLoggedIn();
+    final selectedIds = selectedItems.map((item) => item.product['id'] as int).toList();
+
+    state = state.where((item) => !item.isSelected).toList();
+
+    if (loggedIn) {
+      for (var productId in selectedIds) {
+        try {
+          await ApiService.delete('cart/remove/$productId/');
+        } catch (e) {
+          debugPrint("Error removing selected item from persistent cart: $e");
+        }
+      }
+    }
+  }
+
+  void toggleSelection(int productId) {
+    state = [
+      for (final item in state)
+        if (item.product['id'] == productId)
+          CartItem(
+            product: item.product,
+            quantity: item.quantity,
+            isSelected: !item.isSelected,
+          )
+        else
+          item,
+    ];
+  }
+
+  void toggleAll(bool isSelected) {
+    state = [
+      for (final item in state)
+        CartItem(
+          product: item.product,
+          quantity: item.quantity,
+          isSelected: isSelected,
+        ),
+    ];
+  }
+
   double get totalAmount {
     return state.fold(0, (sum, item) {
+      if (!item.isSelected) return sum;
       final product = item.product;
       final price = product['discount_price'] != null
           ? double.parse(product['discount_price'].toString())
@@ -155,6 +219,8 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
       return sum + (price * item.quantity);
     });
   }
+
+  List<CartItem> get selectedItems => state.where((item) => item.isSelected).toList();
 }
 
 final cartProvider = StateNotifierProvider<CartNotifier, List<CartItem>>((ref) {

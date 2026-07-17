@@ -31,6 +31,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
   int _currentPage = 1;
   bool _hasNextPage = false;
   bool _hasPreviousPage = false;
+  bool _isGridLoading = false;
 
   @override
   void initState() {
@@ -45,13 +46,15 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
     super.dispose();
   }
 
-  Future<void> _fetchProducts({bool isSearch = false, bool resetPage = false}) async {
+  Future<void> _fetchProducts({bool isSearch = false, bool resetPage = false, bool isPaging = false}) async {
     if (resetPage || isSearch) {
       _currentPage = 1;
     }
     if (isSearch) {
       setState(() => _isSearchLoading = true);
-    } else {
+    } else if (isPaging) {
+      setState(() => _isGridLoading = true);
+    } else if (_products.isEmpty) {
       setState(() => _isLoading = true);
     }
     
@@ -74,12 +77,14 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
         }
         _isLoading = false;
         _isSearchLoading = false;
+        _isGridLoading = false;
       });
     } catch (e) {
       debugPrint("Error fetching products: $e");
       setState(() {
         _isLoading = false;
         _isSearchLoading = false;
+        _isGridLoading = false;
       });
     }
   }
@@ -166,7 +171,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
             ),
           ),
           Expanded(
-            child: _isLoading
+            child: _isLoading || _isGridLoading
                 ? const CategoryGridShimmer()
                 : _products.isEmpty
                     ? Center(
@@ -212,7 +217,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                                             setState(() {
                                               _currentPage--;
                                             });
-                                            _fetchProducts();
+                                            _fetchProducts(isPaging: true);
                                           }
                                         : null,
                                   ),
@@ -237,7 +242,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                                             setState(() {
                                               _currentPage++;
                                             });
-                                            _fetchProducts();
+                                            _fetchProducts(isPaging: true);
                                           }
                                         : null,
                                   ),

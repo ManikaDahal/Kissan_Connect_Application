@@ -4,6 +4,7 @@ import 'package:kissan_connect/widgets/product_card.dart';
 import 'package:kissan_connect/services/api_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kissan_connect/core/providers/cart_provider.dart';
+import 'package:kissan_connect/widgets/shimmer_loading.dart';
 
 
 class ProductDetailsScreen extends ConsumerStatefulWidget {
@@ -305,7 +306,14 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
                         Text("Similar Products", style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                         const SizedBox(height: 16),
                         _isLoadingSimilar
-                            ? const Center(child: CircularProgressIndicator())
+                            ? SizedBox(
+                                height: 200,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: 3,
+                                  itemBuilder: (context, index) => const ShimmerWrapper(child: HorizontalProductCardShimmer()),
+                                ),
+                              )
                             : _similarProducts.isEmpty
                                 ? const Text("No similar products found.")
                                 : SizedBox(
@@ -530,8 +538,8 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> wit
         const SizedBox(height: 16),
         if (_isLoadingReviews)
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: 32),
-            child: Center(child: CircularProgressIndicator()),
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: ReviewListShimmer(),
           )
         else if (_paginatedReviews.isEmpty)
           const Padding(

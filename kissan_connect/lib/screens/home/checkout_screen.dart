@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
@@ -9,6 +10,11 @@ import 'package:kissan_connect/widgets/custom_app_bar.dart';
 import 'package:kissan_connect/core/models/address_model.dart';
 import 'package:kissan_connect/screens/profile/add_address_screen.dart';
 import 'package:kissan_connect/core/utils/error_helper.dart';
+import 'package:kissan_connect/core/utils/const.dart';
+import 'package:esewa_flutter_sdk/esewa_config.dart';
+import 'package:esewa_flutter_sdk/esewa_flutter_sdk.dart';
+import 'package:esewa_flutter_sdk/esewa_payment.dart';
+import 'package:esewa_flutter_sdk/esewa_payment_success_result.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
@@ -63,7 +69,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Future<void> _processPayment() async {
-    final cart = ref.read(cartProvider);
+    final cart = ref.read(cartProvider).where((item) => item.isSelected).toList();
     final total = ref.read(cartProvider.notifier).totalAmount;
 
     if (cart.isEmpty) return;
@@ -96,8 +102,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       // 2. Process payment — if this throws, we cancel the order below
       if (_selectedMethod == 'stripe') {
         await _handleStripe(orderId);
-      } else {
+      } else if (_selectedMethod == 'khalti') {
         await _handleKhalti(orderId, total);
+      } else if (_selectedMethod == 'esewa') {
+        await _handleEsewa(orderId, total);
       }
     } catch (e) {
       // Payment failed or was cancelled by the user.
@@ -174,6 +182,51 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
   }
 
+  Future<void> _handleEsewa(int orderId, double amount) async {
+    final completer = Completer<void>();
+
+    try {
+      EsewaFlutterSdk.initPayment(
+        esewaConfig: EsewaConfig(
+          clientId: Constants.esewaClientId,
+          secretId: Constants.esewaSecretKey,
+          environment: Environment.test,
+        ),
+        esewaPayment: EsewaPayment(
+          productId: orderId.toString(),
+          productName: "Order #$orderId",
+          productPrice: amount.toStringAsFixed(2),
+          callbackUrl: "${Constants.apiBaseUrl}/api/esewa-callback/",
+        ),
+        onPaymentSuccess: (EsewaPaymentSuccessResult result) async {
+          debugPrint(":::eSewa SUCCESS::: => $result");
+          try {
+            await ApiService.post(
+              'orders/$orderId/verify-esewa-payment/',
+              {'refId': result.refId},
+            );
+            _onPaymentSuccess();
+            completer.complete();
+          } catch (e) {
+            completer.completeError(e);
+          }
+        },
+        onPaymentFailure: (data) {
+          debugPrint(":::eSewa FAILURE::: => $data");
+          completer.completeError(Exception("eSewa payment failed: $data"));
+        },
+        onPaymentCancellation: (data) {
+          debugPrint(":::eSewa CANCELLATION::: => $data");
+          completer.completeError(Exception("Payment cancelled by user."));
+        },
+      );
+    } catch (e) {
+      completer.completeError(e);
+    }
+
+    return completer.future;
+  }
+
   void _showKhaltiVerificationDialog(int orderId, String pidx) {
     showDialog(
       context: context,
@@ -204,7 +257,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.of(context).pop();
               setState(() => _isLoading = true);
               try {
                 await ApiService.post(
@@ -214,6 +267,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 _onPaymentSuccess();
               } catch (e) {
                 if (mounted) {
+                  // ignore: use_build_context_synchronously
                   ErrorHelper.showSnackBarError(context, e, prefix: "Verification Failed");
                 }
               } finally {
@@ -230,7 +284,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   void _onPaymentSuccess() {
-    ref.read(cartProvider.notifier).clearCart();
+    ref.read(cartProvider.notifier).clearSelectedItems();
     if (!mounted) return;
 
     showDialog(
@@ -398,7 +452,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             width: 2,
           ),
           borderRadius: BorderRadius.circular(12),
-          color: isSelected ? AppTheme.primaryGreen.withOpacity(0.05) : Colors.white,
+          color: isSelected ? AppTheme.primaryGreen.withValues(alpha: 0.05) : Colors.white,
         ),
         child: Row(
           children: [
@@ -428,7 +482,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       backgroundColor: AppTheme.backgroundLight,
       appBar: const CustomAppBar(title: "Checkout"),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator()) // This is for payment processing, keep loader
           : Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -439,6 +493,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   const SizedBox(height: 16),
                   _buildPaymentOption('stripe', 'Stripe (Card)', Icons.credit_card),
                   _buildPaymentOption('khalti', 'Khalti', Icons.account_balance_wallet),
+                  _buildPaymentOption('esewa', 'eSewa', Icons.wallet),
                   const SizedBox(height: 24),
                   const Text("Shipping Address",
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -451,7 +506,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
-                        BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10),
+                        BoxShadow(color: Colors.grey.withValues(alpha: 0.1), blurRadius: 10),
                       ],
                     ),
                     child: Column(

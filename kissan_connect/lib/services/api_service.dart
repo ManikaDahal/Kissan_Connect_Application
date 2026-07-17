@@ -66,7 +66,7 @@ class ApiService {
           if (token != null) 'Authorization': 'Bearer $token',
         },
         body: jsonEncode(data),
-      ).timeout(const Duration(seconds: 60));
+      ).timeout(const Duration(seconds: 20));
       return _handleResponse(response);
     } catch (e) {
       if (e is TimeoutException) {
@@ -94,7 +94,7 @@ class ApiService {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
         },
-      ).timeout(const Duration(seconds: 60));
+      ).timeout(const Duration(seconds: 20));
       return _handleResponse(response);
     } catch (e) {
       if (e is TimeoutException) {

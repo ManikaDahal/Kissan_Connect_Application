@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:kissan_connect/services/api_service.dart';
 import 'package:kissan_connect/theme/app_theme.dart';
+import 'package:kissan_connect/widgets/shimmer_loading.dart';
 
 class WeatherCard extends StatefulWidget {
   const WeatherCard({super.key});
@@ -76,14 +77,7 @@ class _WeatherCardState extends State<WeatherCard> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Container(
-        height: 120,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Center(child: CircularProgressIndicator()),
-      );
+      return const ShimmerWrapper(child: WeatherShimmer());
     }
 
     if (_error != null || _weatherData == null) {

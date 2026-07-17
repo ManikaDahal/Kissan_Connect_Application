@@ -39,6 +39,22 @@ class CartScreen extends ConsumerWidget {
             )
           : Column(
               children: [
+                if (cartItems.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      children: [
+                        Checkbox(
+                          value: cartItems.every((item) => item.isSelected),
+                          activeColor: AppTheme.primaryGreen,
+                          onChanged: (value) {
+                            cartNotifier.toggleAll(value ?? false);
+                          },
+                        ),
+                        const Text("Select All", style: TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
@@ -52,6 +68,13 @@ class CartScreen extends ConsumerWidget {
                           padding: const EdgeInsets.all(8),
                           child: Row(
                             children: [
+                              Checkbox(
+                                value: item.isSelected,
+                                activeColor: AppTheme.primaryGreen,
+                                onChanged: (value) {
+                                  cartNotifier.toggleSelection(item.product['id']);
+                                },
+                              ),
                               Container(
                                 width: 70,
                                 height: 70,
@@ -158,19 +181,25 @@ class CartScreen extends ConsumerWidget {
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: () async {
-                            final bool loggedIn = await ApiService.isLoggedIn();
-                            if (!loggedIn) {
-                              if (context.mounted) {
-                                _showAuthRequiredBottomSheet(context);
-                              }
-                            } else {
-                              if (context.mounted) {
-                                Navigator.pushNamed(context, Routes.checkoutRoute);
-                              }
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryGreen),
+                          onPressed: cartNotifier.selectedItems.isEmpty
+                              ? null
+                              : () async {
+                                  final bool loggedIn = await ApiService.isLoggedIn();
+                                  if (!loggedIn) {
+                                    if (context.mounted) {
+                                      _showAuthRequiredBottomSheet(context);
+                                    }
+                                  } else {
+                                    if (context.mounted) {
+                                      Navigator.pushNamed(context, Routes.checkoutRoute);
+                                    }
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: cartNotifier.selectedItems.isEmpty
+                                ? Colors.grey
+                                : AppTheme.primaryGreen,
+                          ),
                           child: const Text("Proceed to Checkout", style: TextStyle(color: Colors.white, fontSize: 16)),
                         ),
                       ),

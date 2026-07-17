@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:kissan_connect/core/providers/nav_provider.dart';
+import 'package:kissan_connect/screens/home/categories_screen.dart';
 import 'package:kissan_connect/widgets/product_card.dart';
 import 'package:kissan_connect/widgets/shimmer_loading.dart';
 import '../../theme/app_theme.dart';
@@ -42,6 +43,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   bool _hasNextAllProducts = false;
   bool _hasPreviousAllProducts = false;
   int _unreadNotificationCount = 0;
+  final Map<int, List<dynamic>> _pageCache = {};
+  bool _isPrefetching = false;
+  bool _isGridLoading = false;
 
   @override
   void initState() {
@@ -149,7 +153,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         return;
       }
 
-      final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.low);
+      // Try last known position first for speed
+      Position? position = await Geolocator.getLastKnownPosition();
+      
+      // If none, get current with low accuracy and short timeout
+      position ??= await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low,
+        timeLimit: const Duration(seconds: 5),
+      );
+
       final data = await ApiService.get('products/products/nearby/', params: {
         'lat': position.latitude.toString(),
         'lon': position.longitude.toString(),
@@ -216,10 +228,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     }
   }
 
-  Future<void> _fetchData({bool isSearch = false, bool isRefresh = false, bool isSilent = false, bool resetPage = false}) async {
+  Future<void> _fetchData({
+    bool isSearch = false,
+    bool isRefresh = false,
+    bool isSilent = false,
+    bool resetPage = false,
+    bool isPaging = false,
+  }) async {
     if (resetPage || isSearch || isRefresh) {
       _allProductsPage = 1;
+      _pageCache.clear();
     }
+    
+    // Check cache for paging
+    if (isPaging && _pageCache.containsKey(_allProductsPage)) {
+      setState(() {
+        _allProducts = _pageCache[_allProductsPage]!;
+        _isSearchLoading = false;
+        _isLoading = false;
+        _isGridLoading = false;
+      });
+    } else if (isPaging) {
+      setState(() => _isGridLoading = true);
+    }
+
     if (isSearch) {
       setState(() => _isSearchLoading = true);
     } else if (!isRefresh && !isSilent && _allProducts.isEmpty) {
@@ -227,92 +259,77 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     }
     
     try {
-      // Prepare futures for parallel execution
-      final List<Future<dynamic>> futures = [];
-      
-      // 0: Categories (conditional)
-      if (_categories.isEmpty || isRefresh || isSilent) {
-        futures.add(ApiService.get('products/categories/').catchError((e) {
-          debugPrint("Categories error: $e");
-          return null;
-        }));
-      } else {
-        futures.add(Future.value(null));
+      // 1. Fetch Categories separately (only if needed)
+      if (!isPaging && (_categories.isEmpty || isRefresh || isSilent)) {
+        ApiService.get('products/categories/').then((data) {
+          if (mounted && data != null) {
+            setState(() {
+              _categories = (data is Map && data.containsKey('results')) ? data['results'] : data;
+            });
+            _saveDataToCache();
+          }
+        }).catchError((e) => debugPrint("Categories error: $e"));
       }
       
-      // 1: Products (always)
-      futures.add(ApiService.get('products/products/', params: {
+      // 2. Fetch Famous products separately
+      if (!isPaging && _searchQuery.isEmpty && (_famousProducts.isEmpty || isRefresh || isSilent)) {
+        ApiService.get('products/products/', params: {'is_famous': 'true'}).then((data) {
+          if (mounted && data != null) {
+            setState(() {
+              _famousProducts = (data is Map && data.containsKey('results')) ? data['results'] : data;
+            });
+            _saveDataToCache();
+          }
+        }).catchError((e) => debugPrint("Famous products error: $e"));
+      }
+
+      // 3. Fetch Unread notifications count separately
+      if (!isPaging) {
+        ApiService.get('notifications/unread-count/').then((data) {
+          if (mounted && data != null && data is Map && data.containsKey('unread_count')) {
+            setState(() {
+              _unreadNotificationCount = data['unread_count'] ?? 0;
+            });
+          }
+        }).catchError((e) => debugPrint("Unread notifications error: $e"));
+      }
+ 
+      // 4. Main Products Fetch (The only one we await to show main content)
+      final productsData = await ApiService.get('products/products/', params: {
         'page': _allProductsPage.toString(),
         if (_searchQuery.isNotEmpty) 'search': _searchQuery,
         if (_selectedCategory != null) 'category': _selectedCategory.toString(),
         if (_sortBy != null) 'ordering': _sortBy!,
-      }).catchError((e) {
-        debugPrint("Products error: $e");
-        return null;
-      }));
-      
-      // 2: Famous products (conditional)
-      if (_searchQuery.isEmpty && (_famousProducts.isEmpty || isRefresh || isSilent)) {
-        futures.add(ApiService.get('products/products/', params: {'is_famous': 'true'}).catchError((e) {
-          debugPrint("Famous products error: $e");
-          return null;
-        }));
-      } else {
-        futures.add(Future.value(null));
-      }
- 
-      // 3: Unread notifications count (always)
-      futures.add(ApiService.get('notifications/unread-count/').catchError((e) {
-        debugPrint("Unread notifications count error: $e");
-        return null;
-      }));
- 
-      // Execute all calls in parallel
-      final results = await Future.wait(futures);
-      final categoriesData = results[0];
-      final productsData = results[1];
-      final famousData = results[2];
-      final unreadData = results[3];
+      });
  
       if (mounted) {
         setState(() {
-          if (categoriesData != null) {
-            _categories = (categoriesData is Map && categoriesData.containsKey('results')) 
-                ? categoriesData['results'] 
-                : categoriesData;
-          }
-          
           if (productsData != null) {
             if (productsData is Map) {
               _allProducts = productsData['results'] ?? [];
               _hasNextAllProducts = productsData['next'] != null;
               _hasPreviousAllProducts = productsData['previous'] != null;
+              _pageCache[_allProductsPage] = _allProducts;
             } else {
               _allProducts = productsData is List ? productsData : [];
               _hasNextAllProducts = false;
               _hasPreviousAllProducts = false;
+              _pageCache[_allProductsPage] = _allProducts;
             }
           }
-          
-          if (famousData != null) {
-            _famousProducts = (famousData is Map && famousData.containsKey('results')) 
-                ? famousData['results'] 
-                : famousData;
-          }
-
-          if (unreadData != null && unreadData is Map && unreadData.containsKey('unread_count')) {
-            _unreadNotificationCount = unreadData['unread_count'] ?? 0;
-          }
-          
           _isLoading = false;
           _isSearchLoading = false;
+          _isGridLoading = false;
         });
 
-        // Trigger cache save in the background
         _saveDataToCache();
-        if (!isSearch) {
+        if (!isSearch && !isPaging) {
           unawaited(_fetchNearbyProducts());
           unawaited(_fetchRecommendations());
+        }
+        
+        if (_hasNextAllProducts && !isSearch) {
+          _prefetchNextPage();
         }
       }
     } catch (e) {
@@ -321,8 +338,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         setState(() {
           _isLoading = false;
           _isSearchLoading = false;
+          _isGridLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _prefetchNextPage() async {
+    if (_isPrefetching) return;
+    final nextPage = _allProductsPage + 1;
+    if (_pageCache.containsKey(nextPage)) return;
+
+    _isPrefetching = true;
+    try {
+      final productsData = await ApiService.get('products/products/', params: {
+        'page': nextPage.toString(),
+        if (_searchQuery.isNotEmpty) 'search': _searchQuery,
+        if (_selectedCategory != null) 'category': _selectedCategory.toString(),
+        if (_sortBy != null) 'ordering': _sortBy!,
+      });
+      
+      if (productsData != null) {
+        List<dynamic> items = [];
+        if (productsData is Map) {
+          items = productsData['results'] ?? [];
+        } else if (productsData is List) {
+          items = productsData;
+        }
+        _pageCache[nextPage] = items;
+      }
+    } catch (e) {
+      debugPrint("Prefetch error: $e");
+    } finally {
+      _isPrefetching = false;
     }
   }
 
@@ -433,7 +481,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                         Text("Categories", style: AppTheme.lightTheme.textTheme.titleLarge),
                         TextButton(
                           onPressed: () {
-                            ref.read(navProvider.notifier).state = 1;
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const CategoriesScreen()),
+                            );
                           },
                           child: const Text("See All", style: TextStyle(color: AppTheme.primaryGreen)),
                         ),
@@ -444,12 +495,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                       height: 100,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
-                        itemCount: _categories.length + 1,
+                        itemCount: _categories.length,
                         itemBuilder: (context, index) {
-                          if (index == 0) {
-                            return _buildCategoryItem("All", null);
-                          }
-                          final cat = _categories[index - 1];
+                          final cat = _categories[index];
                           return _buildCategoryItem(cat['name'], cat['id'], imageUrl: cat['image']);
                         },
                       ),
@@ -466,7 +514,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                       ),
                       const SizedBox(height: 12),
                       if (_isLoadingNearby)
-                        const Center(child: CircularProgressIndicator())
+                        SizedBox(
+                          height: 220,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: 3,
+                            itemBuilder: (_, __) => const HorizontalProductCardShimmer(),
+                          ),
+                        )
                       else if (_nearbyProducts.isEmpty)
                         Container(
                           padding: const EdgeInsets.all(16),
@@ -499,7 +554,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                       Text("Recommended For You", style: AppTheme.lightTheme.textTheme.titleLarge),
                       const SizedBox(height: 12),
                       if (_isLoadingRecommendations)
-                        const Center(child: CircularProgressIndicator())
+                        SizedBox(
+                          height: 220,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: 3,
+                            itemBuilder: (_, __) => const HorizontalProductCardShimmer(),
+                          ),
+                        )
                       else
                         SizedBox(
                           height: 220,
@@ -570,7 +632,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                     ],
                   ),
                   const SizedBox(height: 12),
-                  if (_allProducts.isEmpty && !_isSearchLoading)
+                  if (_allProducts.isEmpty && !_isSearchLoading && !_isGridLoading)
                     Center(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 40),
@@ -586,6 +648,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                         ),
                       ),
                     )
+                  else if (_isGridLoading)
+                    const ProductGridShimmer(itemCount: 4)
                   else
                     GridView.builder(
                       shrinkWrap: true,
@@ -618,7 +682,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                                     setState(() {
                                       _allProductsPage--;
                                     });
-                                    _fetchData(isSilent: true);
+                                    _fetchData(isSilent: true, isPaging: true);
                                   }
                                 : null,
                           ),
@@ -643,7 +707,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                                     setState(() {
                                       _allProductsPage++;
                                     });
-                                    _fetchData(isSilent: true);
+                                    _fetchData(isSilent: true, isPaging: true);
                                   }
                                 : null,
                           ),
@@ -662,8 +726,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     bool isSelected = _selectedCategory == id;
     return GestureDetector(
       onTap: () {
-        setState(() => _selectedCategory = id);
-        _fetchData();
+        setState(() => _selectedCategory = (_selectedCategory == id ? null : id));
+        _fetchData(resetPage: true);
       },
       child: Container(
         width: 80,

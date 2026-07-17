@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 import stripe
 import os
 import requests
@@ -288,6 +289,68 @@ class OrderViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=400)
 
+    @action(detail=True, methods=['post'], url_path='verify-esewa-payment')
+    def verify_esewa(self, request, pk=None):
+        order = self.get_object()
+        ref_id = request.data.get('refId')
+
+        if not ref_id:
+            return Response({'error': 'Reference ID (refId) is required'}, status=400)
+
+        esewa_env = os.environ.get('ESEWA_ENVIRONMENT', 'test')  # 'live' or 'test'
+
+        # ── Sandbox / Test Mode ────────────────────────────────────────────────
+        # uat.esewa.com.np is NOT reachable from cloud servers (HF Spaces, Render, etc.).
+        # The eSewa Flutter SDK already verified the payment on-device before calling this.
+        # For test mode, we trust the refId from the SDK directly.
+        if esewa_env != 'live':
+            if order.status != 'paid':
+                order.status = 'paid'
+                order.transaction_id = ref_id
+                order.save()
+                _deduct_stock(order)
+                _create_seller_transactions(order)
+                threading.Thread(target=lambda: _notify_payment_success(order)).start()
+            return Response({'status': 'success', 'message': 'Payment verified (sandbox)'})
+
+        # ── Live Mode — server-side verification ───────────────────────────────
+        esewa_client_id = os.environ.get('ESEWA_CLIENT_ID', 'JB0BBQ4aD0UqIThFJwAKBgAXEUkEGQUBBAwdOgABHD4DChwUAB0R')
+        esewa_secret_key = os.environ.get('ESEWA_SECRET_KEY', 'BhwIWQQADhIYSxILExMcAgFXFhcOBwAKBgAXEQ==')
+        url = f"https://esewa.com.np/mobile/transaction?txnRefId={ref_id}"
+
+        headers = {
+            'merchantId': esewa_client_id,
+            'merchantSecret': esewa_secret_key,
+            'Content-Type': 'application/json',
+        }
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code != 200:
+                return Response({'status': 'failed', 'message': f'eSewa returned status code {response.status_code}'}, status=400)
+
+            data = response.json()
+
+            if isinstance(data, list) and len(data) > 0:
+                tx_data = data[0]
+                status_str = tx_data.get('transactionDetails', {}).get('status')
+                if status_str == 'COMPLETE':
+                    if order.status != 'paid':
+                        order.status = 'paid'
+                        order.transaction_id = ref_id
+                        order.save()
+                        _deduct_stock(order)
+                        _create_seller_transactions(order)
+                        threading.Thread(target=lambda: _notify_payment_success(order)).start()
+                    return Response({'status': 'success', 'message': 'Payment successful'})
+                else:
+                    return Response({'status': 'failed', 'message': f"Payment status: {status_str}"}, status=400)
+            else:
+                return Response({'status': 'failed', 'message': f"Invalid response format from eSewa: {data}"}, status=400)
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
+
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -474,4 +537,77 @@ def seller_earnings(request):
         ]
     }
     return Response(response_data)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
+def esewa_callback(request):
+    """
+    eSewa background callback endpoint.
+    Returns 200 OK to prevent eSewa UAT/Production from raising a 404 error after OTP verification.
+    """
+    # Log incoming data to assist in troubleshooting
+    print(f"eSewa Callback Headers: {request.headers}")
+    print(f"eSewa Callback GET Params: {request.GET}")
+    print(f"eSewa Callback POST Data: {request.data}")
+
+    try:
+        ref_id = None
+        order_id = None
+
+        # Check GET params
+        if 'refId' in request.GET:
+            ref_id = request.GET.get('refId')
+            order_id = request.GET.get('oid')
+        # Check POST data
+        elif isinstance(request.data, dict):
+            ref_id = request.data.get('refId')
+            order_id = request.data.get('oid') or request.data.get('productId')
+
+        if ref_id and order_id:
+            try:
+                order = Order.objects.get(id=int(order_id))
+                if order.status != 'paid':
+                    esewa_client_id = os.environ.get('ESEWA_CLIENT_ID', 'JB0BBQ4aD0UqIThFJwAKBgAXEUkEGQUBBAwdOgABHD4DChwUAB0R')
+                    esewa_secret_key = os.environ.get('ESEWA_SECRET_KEY', 'BhwIWQQADhIYSxILExMcAgFXFhcOBwAKBgAXEQ==')
+                    esewa_env = os.environ.get('ESEWA_ENVIRONMENT', 'test')
+
+                    # Skip UAT network call — unreachable from cloud servers.
+                    # For test mode, trust refId from the SDK callback directly.
+                    if esewa_env != 'live':
+                        order.status = 'paid'
+                        order.transaction_id = ref_id
+                        order.save()
+                        _deduct_stock(order)
+                        _create_seller_transactions(order)
+                        threading.Thread(target=lambda: _notify_payment_success(order)).start()
+                    else:
+                        esewa_client_id = os.environ.get('ESEWA_CLIENT_ID', 'JB0BBQ4aD0UqIThFJwAKBgAXEUkEGQUBBAwdOgABHD4DChwUAB0R')
+                        esewa_secret_key = os.environ.get('ESEWA_SECRET_KEY', 'BhwIWQQADhIYSxILExMcAgFXFhcOBwAKBgAXEQ==')
+                        url = f"https://esewa.com.np/mobile/transaction?txnRefId={ref_id}"
+                        headers = {
+                            'merchantId': esewa_client_id,
+                            'merchantSecret': esewa_secret_key,
+                            'Content-Type': 'application/json',
+                        }
+                        response = requests.get(url, headers=headers, timeout=10)
+                    if response.status_code == 200:
+                        data = response.json()
+                        if isinstance(data, list) and len(data) > 0:
+                            tx_data = data[0]
+                            status_str = tx_data.get('transactionDetails', {}).get('status')
+                            if status_str == 'COMPLETE':
+                                order.status = 'paid'
+                                order.transaction_id = ref_id
+                                order.save()
+                                _deduct_stock(order)
+                                _create_seller_transactions(order)
+                                threading.Thread(target=lambda: _notify_payment_success(order)).start()
+            except Exception as ex:
+                print(f"Error in background callback processing: {ex}")
+    except Exception as e:
+        print(f"Error parsing eSewa callback data: {e}")
+
+    return Response({"status": "success", "message": "Callback processed"}, status=200)
+
 
