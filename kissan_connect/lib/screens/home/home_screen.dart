@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:kissan_connect/core/providers/nav_provider.dart';
 import 'package:kissan_connect/screens/home/categories_screen.dart';
+import 'package:kissan_connect/screens/home/category_products_screen.dart';
 import 'package:kissan_connect/widgets/product_card.dart';
 import 'package:kissan_connect/widgets/shimmer_loading.dart';
 import '../../theme/app_theme.dart';
@@ -36,7 +37,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   String? _locationMessage;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  int? _selectedCategory;
   String? _sortBy;
   Timer? _debounce;
   int _allProductsPage = 1;
@@ -305,7 +305,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       final productsData = await ApiService.get('products/products/', params: {
         'page': _allProductsPage.toString(),
         if (_searchQuery.isNotEmpty) 'search': _searchQuery,
-        if (_selectedCategory != null) 'category': _selectedCategory.toString(),
         if (_sortBy != null) 'ordering': _sortBy!,
       });
  
@@ -369,7 +368,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       final productsData = await ApiService.get('products/products/', params: {
         'page': nextPage.toString(),
         if (_searchQuery.isNotEmpty) 'search': _searchQuery,
-        if (_selectedCategory != null) 'category': _selectedCategory.toString(),
         if (_sortBy != null) 'ordering': _sortBy!,
       });
       
@@ -746,11 +744,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   }
 
   Widget _buildCategoryItem(String name, int? id, {String? imageUrl}) {
-    bool isSelected = _selectedCategory == id;
     return GestureDetector(
       onTap: () {
-        setState(() => _selectedCategory = (_selectedCategory == id ? null : id));
-        _fetchData(resetPage: true);
+        if (id != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CategoryProductsScreen(
+                categoryId: id,
+                categoryName: name,
+              ),
+            ),
+          );
+        }
       },
       child: Container(
         width: 80,
@@ -761,7 +767,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
               height: 60,
               width: 60,
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.primaryGreen : Colors.white,
+                color: Colors.white,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
@@ -776,7 +782,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                     ? Image.network(ApiService.getImageUrl(imageUrl), fit: BoxFit.cover)
                     : Icon(
                         id == null ? Icons.apps : Icons.category,
-                        color: isSelected ? Colors.white : AppTheme.primaryGreen,
+                        color: AppTheme.primaryGreen,
                       ),
               ),
             ),
@@ -785,8 +791,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
               name,
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? AppTheme.primaryGreen : Colors.grey[700],
+                fontWeight: FontWeight.normal,
+                color: Colors.grey[700],
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
