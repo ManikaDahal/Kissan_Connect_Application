@@ -109,6 +109,24 @@ class ProductCard extends ConsumerWidget {
                     style: TextStyle(color: Colors.grey[500], fontSize: 10),
                     maxLines: 1,
                   ),
+                  if (product['average_rating'] != null && (product['average_rating'] is num ? product['average_rating'] : double.tryParse(product['average_rating'].toString()) ?? 0) > 0) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Icon(Icons.star, color: Colors.amber, size: 12),
+                        const SizedBox(width: 2),
+                        Text(
+                          (product['average_rating'] is num ? product['average_rating'] : double.tryParse(product['average_rating'].toString()) ?? 0).toStringAsFixed(1),
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                        if (product['total_reviews'] != null && product['total_reviews'] > 0)
+                          Text(
+                            " (${product['total_reviews']})",
+                            style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                          ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 4),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
